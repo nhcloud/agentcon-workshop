@@ -89,7 +89,7 @@ src/
 
 ### Environment Setup
 - Frontend runs on port 3001
-- Backend should be running on port 8000 (LangChain) or 8001 (Semantic Kernel)
+- backend should be running on port 8000 (LangChain) or 8001 (Semantic Kernel)
 - Voice features require HTTPS for production (browser security)
 
 ### Voice Configuration
@@ -122,7 +122,7 @@ ChatService handles:
 3. **Access Application**:
    Open http://localhost:3001
 
-4. **Start Backend Services**:
+4. **Start backend Services**:
    Make sure your backend agents are running on the expected ports
 
 ## 🎨 Customization

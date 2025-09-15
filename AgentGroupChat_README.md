@@ -174,13 +174,13 @@ GENERIC_MODEL=gpt-4o-mini
 
 ### Semantic Kernel
 ```bash
-cd Backend/semantic_kernel
+cd backend/semantic_kernel
 python example_group_chat.py
 ```
 
 ### LangChain
 ```bash
-cd Backend/langchain
+cd backend/langchain
 python example_group_chat.py
 ```
 
@@ -190,11 +190,11 @@ Run the validation scripts to verify the implementations:
 
 ```bash
 # Semantic Kernel
-cd Backend/semantic_kernel
+cd backend/semantic_kernel
 python validate_structure.py
 
 # LangChain
-cd Backend/langchain
+cd backend/langchain
 python test_group_chat.py
 ```
 

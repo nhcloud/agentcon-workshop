@@ -17,7 +17,7 @@ The system has been completely refactored using modern software engineering prin
 ### Project Structure
 
 ```
-Backend/
+backend/
 ├── shared/                     # Common libraries and interfaces
 │   ├── core/                   # Base classes and interfaces
 │   ├── agents/                 # Base agent implementations
@@ -96,7 +96,7 @@ Built-in health checks and system monitoring:
 
 1. **Install dependencies:**
 ```bash
-cd Backend/langchain
+cd backend/langchain
 pip install -r requirements.txt
 ```
 
@@ -120,7 +120,7 @@ python main.py
 
 1. **Install dependencies:**
 ```bash
-cd Backend/python_semantic_kernel
+cd backend/python_semantic_kernel
 pip install -r requirements.txt
 ```
 
@@ -141,7 +141,7 @@ python main.py
 
 1. **Install dependencies:**
 ```bash
-cd Backend/dotnet_semantic_kernel
+cd backend/dotnet_semantic_kernel
 dotnet restore
 ```
 

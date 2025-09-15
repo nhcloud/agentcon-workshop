@@ -150,7 +150,7 @@ npm start
 
 ```
 AI/
-├── Backend/                 # FastAPI backend application
+├── backend/                 # FastAPI backend application
 │   ├── __init__.py
 │   ├── main.py             # FastAPI application and routes
 │   ├── multi_agent.py      # Agent initialization and routing
