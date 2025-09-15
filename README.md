@@ -93,7 +93,7 @@ cd ..
 
 7. Create a `.env` file based on the template:
 ```bash
-cp env.template .env
+cp backend/python/env.template backend/python/.env
 ```
 
 8. Configure the following environment variables in `.env`:
@@ -162,7 +162,9 @@ AI/
 │   │   └── App.js         # Main application component
 │   ├── public/             # Static assets
 │   └── package.json       # Frontend dependencies
-└── env.template           # Environment variables template
+├── backend/python/
+│   └── env.template       # Python environment variables template
+└── backend/dotnet/        # .NET implementations
 ```
 
 ## Development
@@ -223,6 +225,16 @@ Common issues and solutions:
    - Confirm model deployment status
    - Verify API key permissions
    - Check rate limits
+
+## 📚 Documentation
+
+For detailed documentation, see the [docs/](docs/) directory:
+
+- **[Installation Guide](docs/INSTALL.md)** - Complete setup instructions
+- **[Environment Guide](docs/ENVIRONMENT_GUIDE.md)** - Environment configuration
+- **[Group Chat Guide](docs/GROUP_CHAT.md)** - Multi-agent conversations
+- **[Python Examples](backend/python/examples/README.md)** - Python setup and configuration
+- **[.NET Examples](backend/dotnet/examples/README.md)** - .NET setup and configuration
 
 ## Contributing
 

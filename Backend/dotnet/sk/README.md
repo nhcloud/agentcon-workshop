@@ -33,8 +33,7 @@ dotnet_semantic_kernel/
 ├── Configuration/              # Configuration classes
 │   └── AzureAIConfig.cs       # Azure AI settings
 ├── Program.cs                  # Application entry point
-├── appsettings.json           # Configuration settings
-└── .env.template              # Environment variables template
+└── appsettings.json           # Configuration settings
 ```
 
 ## 🤖 Available Agents
@@ -79,13 +78,13 @@ dotnet restore
 
 ### 2. Configuration
 
-Copy the environment template and configure your API keys:
+Copy the example configuration and configure your API keys:
 
 ```bash
-cp .env.template .env
+cp ../examples/appsettings.json appsettings.json
 ```
 
-Edit `.env` with your configuration:
+Edit `appsettings.json` with your configuration:
 
 ```env
 # Primary option: Azure OpenAI

@@ -19,15 +19,12 @@ This guide explains the environment variable configuration for both Semantic Ker
 ## 📁 File Structure
 
 ```
-python_semantic_kernel/
-├── .env                 # Actual environment variables (SK-specific)
-├── .env.template        # Template with placeholder values
-└── .env.example         # Optional: minimal working example
-
-langchain/
-├── .env                 # Actual environment variables (LC-specific)
-├── .env.template        # Template with placeholder values
-└── .env.example         # Optional: minimal working example
+python/
+├── env.template         # Shared template with placeholder values for Python
+├── sk/
+│   └── .env            # Actual environment variables (SK-specific)
+└── langchain/
+    └── .env            # Actual environment variables (LC-specific)
 ```
 
 ## ⚙️ Configuration Sections
@@ -75,13 +72,13 @@ LANGCHAIN_PROJECT=your-project-name
 
 ### 1. Copy Template Files
 ```bash
-# Semantic Kernel
-cd semantic_kernel
-cp .env.template .env
+# For Semantic Kernel
+cd python/sk
+cp ../env.template .env
 
-# LangChain  
-cd langchain
-cp .env.template .env
+# For LangChain  
+cd python/langchain
+cp ../env.template .env
 ```
 
 ### 2. Configure Required Variables
