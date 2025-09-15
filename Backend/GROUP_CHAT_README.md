@@ -14,7 +14,7 @@ This directory contains complete group chat implementations for both **Semantic 
 
 ### Framework-Specific Features
 
-#### Semantic Kernel (`semantic_kernel/`)
+#### Semantic Kernel (`python_semantic_kernel/`)
 - Native SK ChatCompletionAgent integration
 - Azure OpenAI service configuration
 - Kernel-based agent orchestration
@@ -29,7 +29,7 @@ This directory contains complete group chat implementations for both **Semantic 
 ## 📁 Directory Structure
 
 ```
-semantic_kernel/                          # Semantic Kernel Implementation
+python_semantic_kernel/                          # Semantic Kernel Implementation
 ├── agents/
 │   └── agent_group_chat.py        # SemanticKernelAgentGroupChat
 ├── group_chat_config.py           # Configuration loader

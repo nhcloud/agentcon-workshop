@@ -67,7 +67,7 @@ LOG_LEVEL=INFO
 FRONTEND_URL=http://localhost:3000
 ```
 
-#### Semantic Kernel (.env for semantic_kernel/)
+#### Semantic Kernel (.env for python_semantic_kernel/)
 ```bash
 # Azure OpenAI (required)
 AZURE_OPENAI_ENDPOINT=https://your-openai.openai.azure.com

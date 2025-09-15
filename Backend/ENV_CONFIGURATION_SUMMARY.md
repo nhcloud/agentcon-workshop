@@ -7,9 +7,9 @@ I have successfully reformatted and professionalized both `.env` files for the S
 ## 📁 Files Created/Updated
 
 ### Environment Files
-- **`semantic_kernel/.env`** - Production-ready Semantic Kernel environment configuration
+- **`python_semantic_kernel/.env`** - Production-ready Semantic Kernel environment configuration
 - **`langchain/.env`** - Production-ready LangChain environment configuration  
-- **`semantic_kernel/.env.template`** - Secure template with placeholder values
+- **`python_semantic_kernel/.env.template`** - Secure template with placeholder values
 - **`langchain/.env.template`** - Secure template with placeholder values
 
 ### Documentation & Validation

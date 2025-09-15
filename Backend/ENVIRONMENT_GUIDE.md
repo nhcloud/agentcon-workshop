@@ -19,7 +19,7 @@ This guide explains the environment variable configuration for both Semantic Ker
 ## 📁 File Structure
 
 ```
-semantic_kernel/
+python_semantic_kernel/
 ├── .env                 # Actual environment variables (SK-specific)
 ├── .env.template        # Template with placeholder values
 └── .env.example         # Optional: minimal working example

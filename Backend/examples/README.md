@@ -11,7 +11,7 @@ Copy one of the example configurations and customize it for your environment:
 cp examples/config.langchain.yml langchain/config.yml
 
 # For Semantic Kernel implementation  
-cp examples/config.semantic_kernel.yml semantic_kernel/config.yml
+cp examples/config.semantic_kernel.yml python_semantic_kernel/config.yml
 
 # Edit the configuration file
 nano langchain/config.yml

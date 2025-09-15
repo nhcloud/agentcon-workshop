@@ -8,7 +8,7 @@ Agent Group Chat allows multiple AI agents to participate in collaborative conve
 
 ## Implementations
 
-### 1. Semantic Kernel AgentGroupChat (`semantic_kernel/agents/agent_group_chat.py`)
+### 1. Semantic Kernel AgentGroupChat (`python_semantic_kernel/agents/agent_group_chat.py`)
 
 **Features:**
 - Multi-agent conversations using Semantic Kernel's ChatCompletionAgent

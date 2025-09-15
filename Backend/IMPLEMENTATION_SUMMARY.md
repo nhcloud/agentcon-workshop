@@ -7,7 +7,7 @@ AgentGroupChat Implementation Summary
 ## Core Components Created:
 
 ### 1. Group Chat Engines
-- **SK Modern**: `semantic_kernel/agents/agent_group_chat.py`
+- **SK Modern**: `python_semantic_kernel/agents/agent_group_chat.py`
   - SemanticKernelAgentGroupChat class
   - Native SK ChatCompletionAgent integration
   - Kernel-based orchestration

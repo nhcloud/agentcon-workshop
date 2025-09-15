@@ -24,18 +24,26 @@ Backend/
 │   ├── config/                 # Configuration management
 │   ├── routers/                # Routing implementations
 │   └── sessions/               # Session management
-├── langchain/                  # LangChain implementation
+├── langchain/                  # LangChain implementation (Python)
 │   ├── agents/                 # LangChain-specific agents
 │   ├── routers/                # LangChain-specific routers
 │   ├── main.py                 # FastAPI application
 │   ├── config.yml              # Configuration file
 │   └── requirements.txt        # Dependencies
-├── semantic_kernel/            # Semantic Kernel implementation
+├── python_semantic_kernel/     # Semantic Kernel implementation (Python)
 │   ├── agents/                 # SK-specific agents
 │   ├── routers/                # SK-specific routers
 │   ├── main.py                 # FastAPI application
 │   ├── config.yml              # Configuration file
 │   └── requirements.txt        # Dependencies
+├── dotnet_semantic_kernel/     # .NET 9 Semantic Kernel implementation
+│   ├── Controllers/            # ASP.NET Core API controllers
+│   ├── Services/               # Business logic services
+│   ├── Agents/                 # Agent implementations
+│   ├── Models/                 # Data transfer objects
+│   ├── Configuration/          # Configuration classes
+│   ├── Program.cs              # Application entry point
+│   └── DotNetSemanticKernel.csproj  # Project file
 ```
 
 ## Key Features
@@ -112,7 +120,7 @@ python main.py
 
 1. **Install dependencies:**
 ```bash
-cd Backend/semantic_kernel
+cd Backend/python_semantic_kernel
 pip install -r requirements.txt
 ```
 
@@ -128,6 +136,37 @@ export AZURE_OPENAI_KEY="your-key"
 ```bash
 python main.py
 ```
+
+### .NET 9 Semantic Kernel Implementation
+
+1. **Install dependencies:**
+```bash
+cd Backend/dotnet_semantic_kernel
+dotnet restore
+```
+
+2. **Configure environment:**
+```bash
+# Copy environment template
+cp .env.template .env
+
+# Edit .env with your Azure OpenAI or GitHub Models credentials
+# AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+# AZURE_OPENAI_API_KEY=your_api_key
+# OR
+# GITHUB_TOKEN=your_github_token (for GitHub Models)
+```
+
+3. **Run the application:**
+```bash
+# Development mode with hot reload
+dotnet watch run
+
+# Or standard run
+dotnet run
+```
+
+The .NET API will be available at `http://localhost:8002` with Swagger UI for testing.
 
 ## Adding New Agents
 
@@ -316,7 +355,7 @@ curl http://localhost:8000/health
 
 ## Modern Architecture Benefits
 
-The current system provides:
+The current system provides multiple implementation options:
 
 ### Advanced LangChain Features (langchain/)
 - Unified shared component architecture
@@ -325,10 +364,21 @@ The current system provides:
 - Professional session management
 - Enterprise-grade error handling
 
-### Enhanced Semantic Kernel Features (semantic_kernel/)
+### Enhanced Semantic Kernel Features (python_semantic_kernel/)
 - Modern interface implementations
 - Improved Kernel initialization
 - Unified configuration system
+- Multi-provider support with health checking
+- Professional logging and monitoring
+
+### .NET 9 Semantic Kernel Features (dotnet_semantic_kernel/)
+- Modern .NET 9 and C# implementation
+- Native Semantic Kernel integration
+- ASP.NET Core Web API with Swagger documentation
+- Dependency injection and professional architecture
+- Azure AI Inference and GitHub Models support
+- High-performance concurrent session management
+- Comprehensive error handling and logging
 - Multi-provider support with health checking
 - Professional logging and monitoring
 
