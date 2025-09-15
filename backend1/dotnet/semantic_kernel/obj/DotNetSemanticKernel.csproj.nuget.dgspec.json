@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Repo\\nhcloud\\agents-workshop\\backend\\dotnet\\semantic_kernel\\DotNetSemanticKernel.csproj": {}
+    "C:\\repo\\nhcloud\\agents-workshop\\backend\\dotnet\\semantic_kernel\\DotNetSemanticKernel.csproj": {}
   },
   "projects": {
-    "C:\\Repo\\nhcloud\\agents-workshop\\backend\\dotnet\\semantic_kernel\\DotNetSemanticKernel.csproj": {
+    "C:\\repo\\nhcloud\\agents-workshop\\backend\\dotnet\\semantic_kernel\\DotNetSemanticKernel.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Repo\\nhcloud\\agents-workshop\\backend\\dotnet\\semantic_kernel\\DotNetSemanticKernel.csproj",
+        "projectUniqueName": "C:\\repo\\nhcloud\\agents-workshop\\backend\\dotnet\\semantic_kernel\\DotNetSemanticKernel.csproj",
         "projectName": "DotNetSemanticKernel",
-        "projectPath": "C:\\Repo\\nhcloud\\agents-workshop\\backend\\dotnet\\semantic_kernel\\DotNetSemanticKernel.csproj",
-        "packagesPath": "C:\\Users\\udaia\\.nuget\\packages\\",
-        "outputPath": "C:\\Repo\\nhcloud\\agents-workshop\\backend\\dotnet\\semantic_kernel\\obj\\",
+        "projectPath": "C:\\repo\\nhcloud\\agents-workshop\\backend\\dotnet\\semantic_kernel\\DotNetSemanticKernel.csproj",
+        "packagesPath": "C:\\Users\\udai\\.nuget\\packages\\",
+        "outputPath": "C:\\repo\\nhcloud\\agents-workshop\\backend\\dotnet\\semantic_kernel\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\udaia\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\udai\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
