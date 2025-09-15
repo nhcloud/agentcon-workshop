@@ -1,0 +1,85 @@
+# LangChain Configuration Example
+# Optimized for LangChain with Azure AI services
+
+app:
+  title: "LangChain AI Agent System"
+  version: "2.0.0"
+  frontend_url: "${FRONTEND_URL:*}"
+  log_level: "${LOG_LEVEL:INFO}"
+  host: "0.0.0.0"
+  port: 8000
+
+agents:
+  general_assistant:
+    type: "generic"
+    enabled: true
+    instructions: "You are a helpful AI assistant. Provide accurate, clear, and helpful responses to user questions."
+    metadata:
+      description: "General purpose AI assistant"
+      capabilities: ["conversation", "question_answering", "general_help"]
+    framework_config:
+      provider: "azure_openai"
+      model: "gpt-4o"
+      temperature: 0.7
+      max_tokens: 1000
+      endpoint: "${AZURE_INFERENCE_ENDPOINT}"
+
+  people_lookup:
+    type: "people_lookup"
+    enabled: true
+    instructions: "You are an expert at finding and providing information about people. When asked about someone, provide relevant background, expertise, and context."
+    metadata:
+      description: "People and contact information lookup"
+      capabilities: ["people_search", "contact_info", "background_research"]
+    framework_config:
+      provider: "azure_foundry"
+      model: "gpt-4o"
+      temperature: 0.3
+      max_tokens: 800
+      endpoint: "${PROJECT_ENDPOINT}"
+
+  knowledge_finder:
+    type: "knowledge_finder"
+    enabled: true
+    instructions: "You are a knowledge retrieval specialist. Help users find accurate information, cite sources, and provide detailed explanations."
+    metadata:
+      description: "Knowledge and information retrieval"
+      capabilities: ["research", "fact_checking", "information_retrieval"]
+    framework_config:
+      provider: "azure_openai"
+      model: "gpt-4o"
+      temperature: 0.2
+      max_tokens: 1200
+      endpoint: "${AZURE_INFERENCE_ENDPOINT}"
+
+router:
+  type: "hybrid"
+  fallback_to_llm: true
+  patterns:
+    people_lookup:
+      - ".*who is.*"
+      - ".*find.*person.*"
+      - ".*contact.*for.*"
+      - ".*background.*on.*"
+    knowledge_finder:
+      - ".*what is.*"
+      - ".*explain.*"
+      - ".*how does.*"
+      - ".*research.*"
+      - ".*find information.*"
+    general_assistant:
+      - ".*help.*"
+      - ".*assist.*"
+      - ".*general.*"
+  llm_config:
+    provider: "azure_openai"
+    model: "gpt-4o-mini"
+    temperature: 0.1
+    max_tokens: 200
+
+session:
+  storage_type: "${SESSION_STORAGE_TYPE:file}"
+  redis_url: "${REDIS_URL:}"
+  file_path: "./sessions"
+  max_sessions: 1000
+  session_timeout: 3600

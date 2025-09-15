@@ -1,0 +1,278 @@
+# Modern Semantic Kernel Agent System Configuration
+
+# Application settings
+app:
+  title: "Semantic Kernel AI Agent System"
+  version: "2.0.0"
+  frontend_url: "${FRONTEND_URL:*}"
+  log_level: "${LOG_LEVEL:INFO}"
+  environment: "${ENVIRONMENT:production}"
+
+# Azure OpenAI configuration (for Semantic Kernel)
+azure_openai:
+  endpoint: "${AZURE_OPENAI_ENDPOINT}"
+  deployment: "${AZURE_OPENAI_DEPLOYMENT}"
+  api_key: "${AZURE_OPENAI_KEY}"
+
+# Azure AI Foundry project configuration
+azure_foundry:
+  project_endpoint: "${PROJECT_ENDPOINT}"
+  people_agent_id: "${PEOPLE_AGENT_ID}"
+  knowledge_agent_id: "${KNOWLEDGE_AGENT_ID}"
+
+# Google Gemini configuration
+google:
+  api_key: "${GOOGLE_API_KEY}"
+  model_id: "${GEMINI_MODEL_ID:gemini-2.0-flash}"
+
+# AWS Bedrock configuration
+aws:
+  region: "${AWS_DEFAULT_REGION:us-east-1}"
+  bedrock_agent_id: "${AWS_BEDROCK_AGENT_ID}"
+  foundation_model: "${AWS_BEDROCK_FOUNDATION_MODEL}"
+  agent_role_arn: "${AWS_BEDROCK_AGENT_ROLE_ARN}"
+
+# Session management
+sessions:
+  storage_type: "${SESSION_STORAGE_TYPE:file}"  # memory, file, redis
+  storage_path: "${SESSION_STORAGE_PATH:./sessions}"
+  redis_url: "${REDIS_URL:}"
+  cleanup_interval_hours: 24
+  max_age_days: 7
+
+# Caching
+cache:
+  enabled: true
+  max_size: 1000
+  ttl_seconds: 3600
+
+# Logging and monitoring
+logging:
+  level: "${LOG_LEVEL:INFO}"
+  format: "structured"
+  enable_debug: "${DEBUG_LOGS:0}"
+
+# Agent configurations
+agents:
+  generic_agent:
+    type: "generic"
+    enabled: true
+    instructions: |
+      You are a helpful AI assistant powered by Semantic Kernel. Provide accurate, concise, and helpful responses.
+      You can handle a wide variety of tasks including answering questions, helping with analysis, and providing guidance.
+      Be friendly and professional in your interactions.
+    metadata:
+      description: "General purpose Semantic Kernel agent"
+      capabilities: ["general_conversation", "analysis", "task_assistance", "semantic_reasoning"]
+    framework_config:
+      provider: "azure_openai"
+
+  people_lookup:
+    type: "people_lookup"
+    enabled: true
+    instructions: |
+      You are a people lookup specialist using Semantic Kernel and Azure AI Foundry. Help users find information about people in the organization including:
+      - Contact details (email, phone)
+      - Organizational hierarchy (manager, reports)
+      - Team membership and roles
+      - Location and department information
+      
+      Always be respectful of privacy and only share appropriate business information.
+    metadata:
+      description: "Finds information about people using Azure AI Foundry"
+      capabilities: ["employee_search", "contact_lookup", "org_chart", "team_info"]
+    framework_config:
+      provider: "azure_foundry"
+      agent_id: "${PEOPLE_AGENT_ID}"
+      project_endpoint: "${PROJECT_ENDPOINT}"
+
+  knowledge_finder:
+    type: "knowledge_finder"
+    enabled: true
+    instructions: |
+      You are a knowledge and documentation specialist using Semantic Kernel and Azure AI Foundry. Help users find information about:
+      - Company policies and procedures
+      - Technical documentation
+      - Product information and guides
+      - Best practices and how-to guides
+      - Platform-specific information
+      
+      Provide accurate, up-to-date information and cite sources when possible.
+    metadata:
+      description: "Searches documentation using Azure AI Foundry"
+      capabilities: ["document_search", "policy_lookup", "technical_support", "procedure_guidance"]
+    framework_config:
+      provider: "azure_foundry"
+      agent_id: "${KNOWLEDGE_AGENT_ID}"
+      project_endpoint: "${PROJECT_ENDPOINT}"
+
+  gemini_agent:
+    type: "custom"
+    enabled: false  # Disabled by default - enable via environment or config
+    instructions: |
+      You are a creative AI assistant powered by Google Gemini and Semantic Kernel. You excel at:
+      - Creative writing and storytelling
+      - Brainstorming and ideation
+      - Artistic and design assistance
+      - Multi-modal understanding
+      
+      Bring creativity and innovation to every interaction while maintaining helpfulness and accuracy.
+    metadata:
+      description: "Creative assistant powered by Google Gemini"
+      capabilities: ["creative_writing", "brainstorming", "design_assistance", "multi_modal"]
+    framework_config:
+      provider: "gemini"
+
+  bedrock_agent:
+    type: "custom"
+    enabled: false  # Disabled by default - enable via environment or config
+    instructions: |
+      You are an enterprise-focused AI assistant powered by AWS Bedrock and Semantic Kernel. You specialize in:
+      - Business analysis and insights
+      - Strategic planning assistance
+      - Data analysis and reporting
+      - Enterprise workflow optimization
+      
+      Provide professional, enterprise-grade responses with focus on business value and ROI.
+    metadata:
+      description: "Enterprise assistant powered by AWS Bedrock"
+      capabilities: ["business_analysis", "strategic_planning", "data_analysis", "enterprise_workflows"]
+    framework_config:
+      provider: "bedrock"
+      agent_id: "${AWS_BEDROCK_AGENT_ID}"
+      region: "${AWS_DEFAULT_REGION:us-east-1}"
+
+# Router configuration
+router:
+  type: "hybrid_sk"  # pattern, llm, hybrid, hybrid_sk
+  fallback_to_sk: true
+  
+  # Routing patterns for pattern-based routing
+  patterns:
+    people_lookup:
+      - "\\b(who is|find|lookup|contact)\\b.*\\b(person|employee|user|staff)\\b"
+      - "\\b(manager|supervisor|lead|director|ceo|cto)\\b"
+      - "\\bemail.*@\\b"
+      - "\\bphone.*number\\b"
+      - "\\b(team|department|organization|org chart)\\b"
+    
+    knowledge_finder:
+      - "\\b(how to|procedure|process|guide|documentation|docs)\\b"
+      - "\\b(policy|guideline|standard|requirement|compliance)\\b"
+      - "\\b(setup|configuration|install|deploy|implementation)\\b"
+      - "\\b(akumina|platform|technical|api|integration)\\b"
+      - "\\b(manual|tutorial|instruction|walkthrough)\\b"
+    
+    gemini_agent:
+      - "\\b(creative|story|poem|art|design|imagine)\\b"
+      - "\\b(brainstorm|ideate|innovative|artistic)\\b"
+      - "\\b(write|compose|create|generate)\\b.*\\b(story|poem|content)\\b"
+    
+    bedrock_agent:
+      - "\\b(analyze|analysis|business|enterprise|metrics|kpi)\\b"
+      - "\\b(strategy|planning|forecast|budget|roi|revenue)\\b"
+      - "\\b(dashboard|report|analytics|insights)\\b"
+
+  # Semantic Kernel routing configuration
+  sk_routing:
+    use_context_aware: true
+    max_history_messages: 5
+    enable_multi_modal: false
+
+# Health checks
+health:
+  enabled: true
+  check_interval_seconds: 30
+  timeout_seconds: 10
+
+# Multi-provider support
+providers:
+  azure_openai:
+    enabled: true
+    priority: 1
+  
+  azure_foundry:
+    enabled: true
+    priority: 2
+  
+  google_gemini:
+    enabled: "${GOOGLE_API_KEY:false}"
+    priority: 3
+  
+  aws_bedrock:
+    enabled: "${AWS_BEDROCK_AGENT_ID:false}"
+    priority: 4
+
+# Security (future enhancement)
+security:
+  enable_auth: false
+  api_key_header: "X-API-Key"
+  rate_limit_requests: 100
+  rate_limit_window_seconds: 60
+
+# Performance tuning
+performance:
+  max_concurrent_requests: 10
+  request_timeout_seconds: 30
+  enable_async_processing: true
+
+# Group Chat configurations
+group_chats:
+  # Default group chat templates
+  templates:
+    product_team:
+      name: "Product Team Discussion"
+      description: "Cross-functional product team collaboration"
+      max_turns: 8
+      auto_select_speaker: true
+      participants:
+        - name: "ProductManager"
+          instructions: "You are a product manager. Focus on user needs, market requirements, and feature prioritization."
+          role: "facilitator"
+          priority: 3
+        - name: "Engineer"
+          instructions: "You are a software engineer. Focus on technical feasibility, implementation complexity, and technical constraints."
+          role: "participant"
+          priority: 2
+        - name: "Designer"
+          instructions: "You are a UX designer. Focus on user experience, design principles, and usability concerns."
+          role: "participant"
+          priority: 2
+
+    technical_review:
+      name: "Technical Architecture Review"
+      description: "Technical experts reviewing system design"
+      max_turns: 6
+      auto_select_speaker: true
+      participants:
+        - name: "SeniorArchitect"
+          instructions: "You are a senior architect. Focus on system design, scalability, and architectural best practices."
+          role: "facilitator"
+          priority: 3
+        - name: "SecurityExpert"
+          instructions: "You are a security expert. Focus on security vulnerabilities, secure coding practices, and compliance."
+          role: "participant"
+          priority: 2
+        - name: "DatabaseExpert"
+          instructions: "You are a database expert. Focus on data modeling, performance optimization, and database architecture."
+          role: "participant"
+          priority: 2
+
+    business_strategy:
+      name: "Business Strategy Session"
+      description: "Strategic business discussion and planning"
+      max_turns: 10
+      auto_select_speaker: true
+      participants:
+        - name: "Strategist"
+          instructions: "You are a business strategist. Focus on market analysis, competitive landscape, and strategic planning."
+          role: "facilitator"
+          priority: 3
+        - name: "Analyst"
+          instructions: "You are a business analyst. Focus on data analysis, metrics, and quantitative insights."
+          role: "participant"
+          priority: 2
+        - name: "Advisor"
+          instructions: "You are a senior advisor. Provide guidance based on experience and industry knowledge."
+          role: "participant"
+          priority: 2

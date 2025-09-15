@@ -1,0 +1,130 @@
+# Semantic Kernel Configuration Example
+# Multi-provider setup with Azure OpenAI, Azure Foundry, Gemini, and Bedrock
+
+app:
+  title: "Semantic Kernel AI Agent System"
+  version: "2.0.0"
+  frontend_url: "${FRONTEND_URL:*}"
+  log_level: "${LOG_LEVEL:INFO}"
+  host: "0.0.0.0"
+  port: 8000
+
+agents:
+  azure_assistant:
+    type: "generic"
+    enabled: true
+    instructions: "You are a helpful AI assistant powered by Azure OpenAI. Provide clear, accurate, and helpful responses."
+    metadata:
+      description: "Azure OpenAI powered assistant"
+      capabilities: ["conversation", "azure_integration"]
+    framework_config:
+      provider: "azure_openai"
+      model: "gpt-4o"
+      temperature: 0.7
+      max_tokens: 1000
+      endpoint: "${AZURE_OPENAI_ENDPOINT}"
+      deployment: "${AZURE_OPENAI_DEPLOYMENT}"
+      api_key: "${AZURE_OPENAI_KEY}"
+
+  foundry_specialist:
+    type: "knowledge_finder"
+    enabled: true
+    instructions: "You are a specialist powered by Azure AI Foundry. Focus on research, analysis, and providing detailed explanations."
+    metadata:
+      description: "Azure AI Foundry specialist"
+      capabilities: ["research", "analysis", "detailed_explanations"]
+    framework_config:
+      provider: "azure_foundry"
+      model: "gpt-4o"
+      temperature: 0.3
+      max_tokens: 1200
+      endpoint: "${PROJECT_ENDPOINT}"
+
+  gemini_creative:
+    type: "generic"
+    enabled: false  # Enable when GOOGLE_API_KEY is available
+    instructions: "You are a creative AI assistant powered by Google Gemini. Focus on creative tasks, brainstorming, and innovative solutions."
+    metadata:
+      description: "Google Gemini creative assistant"
+      capabilities: ["creativity", "brainstorming", "innovation"]
+    framework_config:
+      provider: "gemini"
+      model: "gemini-pro"
+      temperature: 0.9
+      max_tokens: 1000
+      api_key: "${GOOGLE_API_KEY:}"
+
+  bedrock_analyst:
+    type: "knowledge_finder"
+    enabled: false  # Enable when AWS credentials are available
+    instructions: "You are an analytical AI assistant powered by AWS Bedrock. Focus on data analysis, insights, and structured reasoning."
+    metadata:
+      description: "AWS Bedrock analytical assistant"
+      capabilities: ["analysis", "insights", "structured_reasoning"]
+    framework_config:
+      provider: "bedrock"
+      model: "anthropic.claude-v2"
+      temperature: 0.2
+      max_tokens: 1000
+      region: "${AWS_REGION:us-east-1}"
+      agent_id: "${AWS_BEDROCK_AGENT_ID:}"
+
+  people_lookup:
+    type: "people_lookup"
+    enabled: true
+    instructions: "You are an expert at finding and providing information about people. Use the most appropriate AI provider for the query."
+    metadata:
+      description: "Multi-provider people lookup specialist"
+      capabilities: ["people_search", "contact_info", "background_research"]
+    framework_config:
+      provider: "azure_openai"
+      model: "gpt-4o"
+      temperature: 0.3
+      max_tokens: 800
+      endpoint: "${AZURE_OPENAI_ENDPOINT}"
+      deployment: "${AZURE_OPENAI_DEPLOYMENT}"
+      api_key: "${AZURE_OPENAI_KEY}"
+
+router:
+  type: "hybrid"
+  fallback_to_llm: true
+  patterns:
+    people_lookup:
+      - ".*who is.*"
+      - ".*find.*person.*"
+      - ".*contact.*information.*"
+      - ".*background.*on.*"
+    foundry_specialist:
+      - ".*research.*"
+      - ".*analyze.*"
+      - ".*explain.*in.*detail.*"
+      - ".*study.*"
+    gemini_creative:
+      - ".*creative.*"
+      - ".*brainstorm.*"
+      - ".*innovative.*"
+      - ".*design.*"
+    bedrock_analyst:
+      - ".*analyze.*data.*"
+      - ".*insights.*"
+      - ".*patterns.*"
+      - ".*structured.*"
+    azure_assistant:
+      - ".*general.*"
+      - ".*help.*"
+      - ".*assist.*"
+  llm_config:
+    provider: "azure_openai"
+    model: "gpt-4o-mini"
+    temperature: 0.1
+    max_tokens: 200
+    endpoint: "${AZURE_OPENAI_ENDPOINT}"
+    deployment: "${AZURE_OPENAI_DEPLOYMENT:gpt-4o-mini}"
+    api_key: "${AZURE_OPENAI_KEY}"
+
+session:
+  storage_type: "${SESSION_STORAGE_TYPE:file}"
+  redis_url: "${REDIS_URL:}"
+  file_path: "./sessions"
+  max_sessions: 1000
+  session_timeout: 3600

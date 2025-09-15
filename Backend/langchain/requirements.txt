@@ -1,0 +1,39 @@
+# Modern LangChain Agent System Dependencies
+
+# Core framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.4.0
+python-dotenv>=1.0.0
+
+# LangChain components
+langchain>=0.1.0
+langchain-azure-ai>=0.1.0
+langchain-core>=0.1.0
+
+# Azure services
+azure-ai-projects>=1.0.0
+azure-identity>=1.15.0
+
+# Async and utilities
+aiofiles>=23.0.0
+aioredis>=2.0.0  # Optional for Redis session storage
+httpx>=0.25.0
+
+# Configuration and validation
+PyYAML>=6.0
+pydantic-settings>=2.0.0
+
+# Shared dependencies (relative import from parent directory)
+# Install with: pip install -e ../shared
+
+# Development (optional)
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+isort>=5.12.0
+mypy>=1.6.0
+
+# Optional session storage backends
+redis>=4.5.0  # For Redis session storage
+sqlalchemy>=2.0.0  # For database session storage

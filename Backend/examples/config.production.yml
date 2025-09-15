@@ -1,0 +1,87 @@
+# Production Configuration Template
+# Production-ready settings with security and reliability focus
+
+app:
+  title: "AI Agent System - Production"
+  version: "2.0.0"
+  frontend_url: "${FRONTEND_URL:https://your-frontend.com}"
+  log_level: "${LOG_LEVEL:INFO}"
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
+
+agents:
+  production_assistant:
+    type: "generic"
+    enabled: true
+    instructions: "You are a professional AI assistant. Provide accurate, helpful, and appropriate responses. Always maintain a professional tone."
+    metadata:
+      description: "Production AI assistant"
+      capabilities: ["professional_assistance", "customer_support"]
+    framework_config:
+      provider: "azure_openai"
+      model: "gpt-4o"
+      temperature: 0.5  # More conservative for production
+      max_tokens: 800
+      timeout: 30
+
+  knowledge_expert:
+    type: "knowledge_finder"
+    enabled: true
+    instructions: "You are a knowledge expert. Provide accurate, well-sourced information. If you're uncertain, clearly state limitations."
+    metadata:
+      description: "Knowledge and information expert"
+      capabilities: ["knowledge_retrieval", "fact_checking"]
+    framework_config:
+      provider: "azure_openai"
+      model: "gpt-4o"
+      temperature: 0.2  # Low temperature for accuracy
+      max_tokens: 1000
+      timeout: 45
+
+router:
+  type: "hybrid"
+  fallback_to_llm: true
+  patterns:
+    knowledge_expert:
+      - ".*what is.*"
+      - ".*explain.*"
+      - ".*information.*about.*"
+      - ".*details.*on.*"
+    production_assistant:
+      - ".*help.*"
+      - ".*assist.*"
+      - ".*support.*"
+  llm_config:
+    provider: "azure_openai"
+    model: "gpt-4o-mini"
+    temperature: 0.1
+    max_tokens: 150
+    timeout: 20
+
+session:
+  storage_type: "redis"  # Required for production
+  redis_url: "${REDIS_URL}"  # Required
+  max_sessions: 10000
+  session_timeout: 7200  # 2 hours
+
+# Production-specific settings (commented examples)
+# logging:
+#   level: "INFO"
+#   format: "json"
+#   file: "/var/log/ai-agent-system.log"
+#   rotation: "daily"
+#   retention: "30 days"
+
+# security:
+#   cors_origins: ["https://your-frontend.com"]
+#   rate_limiting:
+#     requests_per_minute: 60
+#     burst: 10
+#   api_key_required: true
+
+# monitoring:
+#   health_check_endpoint: "/health"
+#   metrics_endpoint: "/metrics"
+#   performance_tracking: true
+#   error_reporting: true
