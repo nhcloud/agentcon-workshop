@@ -6,7 +6,7 @@ import os
 import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
-from .manager import ConfigurationManager as BaseConfigManager
+from .manager import YamlConfigManager as BaseConfigManager
 from .validation import SystemConfigModel, ValidationResult, load_and_validate_config
 
 logger = logging.getLogger(__name__)

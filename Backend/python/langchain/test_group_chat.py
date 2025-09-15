@@ -7,9 +7,8 @@ import os
 import sys
 from pathlib import Path
 
-# Add parent directories to path for imports
-sys.path.append(str(Path(__file__).parent))
-sys.path.append(str(Path(__file__).parent.parent / "shared"))
+# Add the parent directory to the Python path to import shared modules
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # Test imports
 try:

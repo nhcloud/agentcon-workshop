@@ -1,7 +1,11 @@
 """LangChain-specific router implementation."""
 
 import os
+import sys
 from typing import Any, Dict, List, Optional
+
+# Add the parent directory to the Python path to import shared modules
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from langchain_azure_ai.chat_models import AzureAIChatCompletionsModel
 from langchain_core.messages import HumanMessage, SystemMessage

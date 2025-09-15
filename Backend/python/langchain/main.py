@@ -1,11 +1,15 @@
 """Modern FastAPI application for LangChain agents."""
 
 import os
+import sys
 import uuid
 import time
 import logging
 from contextlib import asynccontextmanager
 from typing import Optional, Dict, Any, List
+
+# Add the parent directory to the Python path to import shared modules
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware

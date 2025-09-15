@@ -1,7 +1,11 @@
 """Semantic Kernel-specific router implementation."""
 
 import os
+import sys
 from typing import Any, Dict, List, Optional
+
+# Add the parent directory to the Python path to import shared modules
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from semantic_kernel import Kernel
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion

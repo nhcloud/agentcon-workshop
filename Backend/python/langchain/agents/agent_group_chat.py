@@ -2,10 +2,14 @@
 
 import asyncio
 import os
+import sys
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 from dataclasses import dataclass, field
 from enum import Enum
 import logging
+
+# Add the parent directory to the Python path to import shared modules
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from langchain_azure_ai.chat_models import AzureAIChatCompletionsModel
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
@@ -35,6 +39,16 @@ class GroupChatConfig:
     termination_keyword: str = "TERMINATE"
     require_facilitator: bool = True
     auto_select_speaker: bool = True
+
+
+@dataclass
+class GroupChatParticipant:
+    """Represents a participant in the group chat."""
+    agent: 'LangChainAgent'
+    role: GroupChatRole = GroupChatRole.PARTICIPANT
+    can_initiate: bool = True
+    max_consecutive_turns: int = 3
+    priority: int = 1  # Higher number = higher priority
 
 
 @dataclass
