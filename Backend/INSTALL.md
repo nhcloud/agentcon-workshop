@@ -30,20 +30,20 @@ pip install -e ".[all,dev]"
 
 #### For LangChain Implementation:
 ```bash
-cd ../langchain
+cd python/langchain
 pip install -r requirements.txt
 
 # Copy example configuration
-cp ../examples/config.langchain.yml config.yml
+cp ../examples/langchain/config.yml config.yml
 ```
 
 #### For Semantic Kernel Implementation:
 ```bash
-cd ../semantic_kernel
+cd python/sk
 pip install -r requirements.txt
 
 # Copy example configuration
-cp ../examples/config.semantic_kernel.yml config.yml
+cp ../examples/sk/config.yml config.yml
 ```
 
 ## Environment Setup
@@ -177,7 +177,7 @@ RUN pip install -r requirements.txt
 
 # Copy application
 COPY langchain/ ./
-COPY examples/config.langchain.yml ./config.yml
+COPY python/examples/langchain/config.yml ./config.yml
 
 EXPOSE 8000
 
@@ -299,7 +299,7 @@ pip install --upgrade -r requirements.txt
 ```
 
 ### 2. Update Configuration
-Compare your `config.yml` with the latest examples in `examples/`.
+Compare your `config.yml` with the latest examples in `python/examples/` or `dotnet/examples/` depending on your platform.
 
 ### 3. Migration Guide
 Check the CHANGELOG.md for breaking changes and migration instructions.
