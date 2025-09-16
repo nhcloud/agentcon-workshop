@@ -9,6 +9,7 @@ import {
   Volume2, 
   Play, 
   Pause, 
+  Square,
   RotateCcw,
   Users,
   MessageSquare,
@@ -587,13 +588,37 @@ function App() {
   };
 
   const initializeVoiceService = () => {
-    voiceService.onListeningStateChange = setIsListening;
-    voiceService.onPlaybackStateChange = ({ isPlaying, isPaused }) => {
-      setIsPlaying(isPlaying);
-      setIsPaused(isPaused);
+    // Set up voice input callbacks
+    voiceService.onListeningStart = () => setIsListening(true);
+    voiceService.onListeningEnd = () => setIsListening(false);
+    voiceService.onTranscript = (transcript) => {
+      if (transcript.isFinal) {
+        setInputMessage(prev => prev + transcript.final + ' ');
+      }
     };
-    voiceService.onTranscription = (text) => {
-      setInputMessage(prev => prev + text + ' ');
+
+    // Set up voice output callbacks
+    voiceService.onSpeechStart = () => {
+      setIsPlaying(true);
+      setIsPaused(false);
+    };
+    voiceService.onSpeechEnd = () => {
+      setIsPlaying(false);
+      setIsPaused(false);
+    };
+    voiceService.onSpeechPause = () => {
+      setIsPaused(true);
+    };
+    voiceService.onSpeechResume = () => {
+      setIsPaused(false);
+    };
+
+    // Error handling
+    voiceService.onError = (error) => {
+      console.error('Voice service error:', error);
+      setIsListening(false);
+      setIsPlaying(false);
+      setIsPaused(false);
     };
   };
 
@@ -675,13 +700,20 @@ function App() {
   };
 
   const toggleVoicePlayback = () => {
-    if (isPlaying) {
-      if (isPaused) {
-        voiceService.resumeSpeaking();
-      } else {
-        voiceService.pauseSpeaking();
-      }
+    if (isPlaying && !isPaused) {
+      // Currently playing, so pause it
+      voiceService.pauseSpeech();
+    } else if (isPaused) {
+      // Currently paused, so resume it
+      voiceService.resumeSpeech();
+    } else {
+      // Not playing, replay last message if available
+      replayLastMessage();
     }
+  };
+
+  const stopVoicePlayback = () => {
+    voiceService.stopSpeaking();
   };
 
   const replayLastMessage = () => {
@@ -794,7 +826,14 @@ function App() {
                 <span>Voice Output</span>
                 <ToggleSwitch
                   active={isVoiceOutputEnabled}
-                  onClick={() => setIsVoiceOutputEnabled(!isVoiceOutputEnabled)}
+                  onClick={() => {
+                    const newState = !isVoiceOutputEnabled;
+                    setIsVoiceOutputEnabled(newState);
+                    // Stop any current speech when disabling voice output
+                    if (!newState) {
+                      voiceService.stopSpeaking();
+                    }
+                  }}
                   whileTap={{ scale: 0.95 }}
                 />
               </VoiceToggle>
@@ -806,8 +845,19 @@ function App() {
                   disabled={!isVoiceOutputEnabled}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  title={isPlaying && !isPaused ? "Pause" : "Resume"}
                 >
                   {isPlaying && !isPaused ? <Pause size={16} /> : <Play size={16} />}
+                </VoiceButton>
+                
+                <VoiceButton
+                  onClick={stopVoicePlayback}
+                  disabled={!isVoiceOutputEnabled || (!isPlaying && !isPaused)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  title="Stop"
+                >
+                  <Square size={16} />
                 </VoiceButton>
                 
                 <VoiceButton
@@ -815,6 +865,7 @@ function App() {
                   disabled={!isVoiceOutputEnabled}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  title="Replay last message"
                 >
                   <RotateCcw size={16} />
                 </VoiceButton>

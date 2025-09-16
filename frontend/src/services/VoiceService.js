@@ -173,18 +173,59 @@ class VoiceService {
     // Stop any current speech
     this.stopSpeaking();
 
-    this.fullText = text;
+    this.fullText = text.trim();
     this.pausedPosition = 0;
     this.isPaused = false;
 
+    // Split long text into chunks to prevent browser issues
+    if (this.fullText.length > 500) {
+      return this._speakInChunks(this.fullText, options);
+    }
+
     return this._speakFromPosition(0, options);
+  }
+
+  /**
+   * Speak long text in chunks
+   */
+  _speakInChunks(text, options = {}) {
+    const sentences = text.match(/[^\.!?]+[\.!?]+/g) || [text];
+    let currentChunk = 0;
+
+    const speakNextChunk = () => {
+      if (currentChunk < sentences.length && !this.isPaused) {
+        const chunk = sentences[currentChunk];
+        this._speakFromPosition(0, { ...options, text: chunk });
+        
+        // Set up handler for when this chunk ends
+        if (this.currentUtterance) {
+          const originalOnEnd = this.currentUtterance.onend;
+          this.currentUtterance.onend = () => {
+            currentChunk++;
+            if (currentChunk < sentences.length && this.isSpeaking) {
+              setTimeout(speakNextChunk, 100); // Small delay between chunks
+            } else {
+              // All chunks done
+              this.isSpeaking = false;
+              this.isPaused = false;
+              this.currentUtterance = null;
+              this.pausedPosition = 0;
+              this.onSpeechEnd?.();
+            }
+          };
+        }
+      }
+    };
+
+    speakNextChunk();
+    return true;
   }
 
   /**
    * Internal method to speak from a specific position
    */
   _speakFromPosition(startPosition, options = {}) {
-    const textToSpeak = this.fullText.substring(startPosition);
+    const textToSpeak = options.text || this.fullText.substring(startPosition);
     
     if (!textToSpeak.trim()) {
       return false;
@@ -206,11 +247,14 @@ class VoiceService {
     };
 
     this.currentUtterance.onend = () => {
-      this.isSpeaking = false;
-      this.isPaused = false;
-      this.currentUtterance = null;
-      this.pausedPosition = 0;
-      this.onSpeechEnd?.();
+      // Only reset if this is the final utterance
+      if (!options.text) {
+        this.isSpeaking = false;
+        this.isPaused = false;
+        this.currentUtterance = null;
+        this.pausedPosition = 0;
+        this.onSpeechEnd?.();
+      }
     };
 
     this.currentUtterance.onpause = () => {
@@ -222,6 +266,7 @@ class VoiceService {
     };
 
     this.currentUtterance.onerror = (event) => {
+      console.error('Speech synthesis error:', event);
       this.isSpeaking = false;
       this.isPaused = false;
       this.onError?.(event.error);
@@ -234,7 +279,14 @@ class VoiceService {
       }
     };
 
-    this.speechSynthesis.speak(this.currentUtterance);
+    try {
+      this.speechSynthesis.speak(this.currentUtterance);
+    } catch (error) {
+      console.error('Error starting speech:', error);
+      this.onError?.(error.message);
+      return false;
+    }
+    
     return true;
   }
 
@@ -243,10 +295,17 @@ class VoiceService {
    */
   pauseSpeech() {
     if (this.isSpeaking && !this.isPaused) {
-      this.speechSynthesis.pause();
-      this.isPaused = true;
-      this.onSpeechPause?.();
-      return true;
+      try {
+        this.speechSynthesis.pause();
+        this.isPaused = true;
+        this.onSpeechPause?.();
+        return true;
+      } catch (error) {
+        // Fallback: stop and remember position
+        console.warn('Pause not supported, stopping speech:', error);
+        this.stopSpeaking();
+        return false;
+      }
     }
     return false;
   }
@@ -255,15 +314,22 @@ class VoiceService {
    * Resume paused speech
    */
   resumeSpeech() {
-    if (this.isPaused && this.speechSynthesis.paused) {
-      this.speechSynthesis.resume();
-      this.isPaused = false;
-      this.onSpeechResume?.();
-      return true;
+    if (this.isPaused) {
+      try {
+        if (this.speechSynthesis.paused) {
+          this.speechSynthesis.resume();
+          this.isPaused = false;
+          this.onSpeechResume?.();
+          return true;
+        }
+      } catch (error) {
+        console.warn('Resume not supported:', error);
+      }
     }
     
     // If speech was stopped but we have a paused position, restart from there
     if (this.pausedPosition > 0 && !this.isSpeaking) {
+      this.isPaused = false;
       return this._speakFromPosition(this.pausedPosition);
     }
     
@@ -275,11 +341,17 @@ class VoiceService {
    */
   stopSpeaking() {
     if (this.isSpeaking || this.isPaused) {
-      this.speechSynthesis.cancel();
+      try {
+        this.speechSynthesis.cancel();
+      } catch (error) {
+        console.warn('Error stopping speech:', error);
+      }
+      
       this.isSpeaking = false;
       this.isPaused = false;
       this.currentUtterance = null;
       this.pausedPosition = 0;
+      this.onSpeechEnd?.();
       return true;
     }
     return false;
