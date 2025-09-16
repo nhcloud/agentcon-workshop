@@ -6,10 +6,10 @@ from pathlib import Path
 
 from group_chat_config import get_config_loader
 from agents.agent_group_chat import (
-    LangChainAgentGroupChat, 
+    EnhancedLangChainAgentGroupChat, 
     GroupChatConfig, 
     GroupChatRole,
-    GroupChatParticipant
+    GroupChatParticipantInfo
 )
 
 

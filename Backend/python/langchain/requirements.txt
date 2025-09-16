@@ -10,7 +10,6 @@ starlette
 
 # LangChain components
 langchain
-langchain-azure-ai
 langchain-core
 langchain-openai
 langchain-text-splitters

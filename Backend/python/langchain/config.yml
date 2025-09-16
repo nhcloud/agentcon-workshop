@@ -8,11 +8,12 @@ app:
   log_level: "${LOG_LEVEL:INFO}"
   environment: "${ENVIRONMENT:production}"
 
-# Azure AI Inference configuration
-azure_inference:
-  endpoint: "${AZURE_INFERENCE_ENDPOINT}"
-  credential: "${AZURE_INFERENCE_CREDENTIAL:}"
-  generic_model: "${GENERIC_MODEL:gpt-4o-mini}"
+# Azure OpenAI configuration
+azure_openai:
+  endpoint: "${AZURE_OPENAI_ENDPOINT}"
+  api_key: "${AZURE_OPENAI_API_KEY}"
+  api_version: "${AZURE_OPENAI_API_VERSION:2024-02-01}"
+  deployment_name: "${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-4o-mini}"
 
 # Azure AI Foundry project configuration
 azure_foundry:

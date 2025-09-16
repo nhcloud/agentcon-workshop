@@ -1,4 +1,4 @@
-"""LangChain-based Agent Group Chat implementation."""
+"""Enhanced LangChain-based Agent Group Chat implementation that uses actual agents."""
 
 import asyncio
 import os
@@ -11,14 +11,14 @@ import logging
 # Add the parent directory to the Python path to import shared modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from langchain_azure_ai.chat_models import AzureAIChatCompletionsModel
+from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
 from shared import (
     AgentConfig, AgentMessage, AgentResponse, AgentType, 
-    MessageRole, AgentInitializationException
+    MessageRole, AgentInitializationException, BaseAgent
 )
 
 
@@ -32,55 +32,34 @@ class GroupChatRole(Enum):
 @dataclass
 class GroupChatConfig:
     """Configuration for group chat."""
-    name: str
+    name: str = "DefaultGroupChat"
     description: str = ""
     max_turns: int = 10
-    enable_termination_keyword: bool = True
     termination_keyword: str = "TERMINATE"
+    enable_termination_keyword: bool = True
     require_facilitator: bool = True
+    response_wait_time: float = 0.5
     auto_select_speaker: bool = True
 
 
 @dataclass
-class GroupChatParticipant:
-    """Represents a participant in the group chat."""
-    agent: 'LangChainAgent'
+class GroupChatParticipantInfo:
+    """Information about a group chat participant."""
+    agent_name: str
     role: GroupChatRole = GroupChatRole.PARTICIPANT
-    can_initiate: bool = True
+    priority: int = 1
     max_consecutive_turns: int = 3
-    priority: int = 1  # Higher number = higher priority
 
 
-@dataclass
-class LangChainAgent:
-    """Wrapper for LangChain agent in group chat context."""
-    name: str
-    instructions: str
-    llm: AzureAIChatCompletionsModel
-    role: GroupChatRole = GroupChatRole.PARTICIPANT
-    can_initiate: bool = True
-    max_consecutive_turns: int = 3
-    priority: int = 1  # Higher number = higher priority
+class EnhancedLangChainAgentGroupChat:
+    """Enhanced group chat that uses actual agent instances from registry."""
     
-    def get_system_message(self) -> str:
-        """Get the system message for this agent."""
-        role_context = ""
-        if self.role == GroupChatRole.FACILITATOR:
-            role_context = " You are acting as a facilitator in this group discussion."
-        elif self.role == GroupChatRole.OBSERVER:
-            role_context = " You are observing this group discussion."
-        
-        return f"{self.instructions}{role_context}"
-
-
-class LangChainAgentGroupChat:
-    """Group chat implementation using LangChain agents."""
-    
-    def __init__(self, config: GroupChatConfig):
+    def __init__(self, config: GroupChatConfig, agent_registry):
         self.config = config
         self.name = config.name
-        self.participants: Dict[str, LangChainAgent] = {}
-        self.conversation_history: List[BaseMessage] = []
+        self.agent_registry = agent_registry
+        self.participants: Dict[str, GroupChatParticipantInfo] = {}
+        self.conversation_history: List[AgentMessage] = []
         self.logger = logging.getLogger(f"GroupChat.{self.name}")
         self.is_initialized = False
         
@@ -90,102 +69,69 @@ class LangChainAgentGroupChat:
         self.consecutive_turns: Dict[str, int] = {}
         self.conversation_active = False
         
-        # LangChain components
-        self.llm: Optional[AzureAIChatCompletionsModel] = None
+        # LangChain components for intelligent routing
+        self.routing_llm: Optional[AzureChatOpenAI] = None
         self.parser = StrOutputParser()
     
     async def initialize(self) -> None:
-        """Initialize the group chat and LangChain components."""
+        """Initialize the group chat and routing components."""
         if self.is_initialized:
             return
             
         try:
-            # Initialize LangChain model
-            endpoint = os.getenv("AZURE_INFERENCE_ENDPOINT")
-            credential = os.getenv("AZURE_INFERENCE_CREDENTIAL")
-            model = os.getenv("GENERIC_MODEL", "gpt-4o-mini")
+            # Initialize routing LLM for speaker selection
+            azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+            api_key = os.getenv("AZURE_OPENAI_API_KEY")
+            api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
+            deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o-mini")
             
-            if not endpoint:
-                raise AgentInitializationException("AZURE_INFERENCE_ENDPOINT is required")
-            
-            self.llm = AzureAIChatCompletionsModel(
-                endpoint=endpoint,
-                credential=credential,
-                model=model,
-            )
+            if azure_endpoint and api_key:
+                self.routing_llm = AzureChatOpenAI(
+                    azure_endpoint=azure_endpoint,
+                    openai_api_key=api_key,
+                    openai_api_version=api_version,
+                    deployment_name=deployment_name,
+                    temperature=0.3,  # Low temperature for routing decisions
+                    max_tokens=50,
+                )
             
             self.is_initialized = True
-            self.logger.info(f"Initialized LangChain group chat: {self.name}")
+            self.logger.info(f"Initialized enhanced group chat: {self.name}")
             
         except Exception as e:
+            self.logger.error(f"Failed to initialize group chat: {e}")
             raise AgentInitializationException(f"Failed to initialize group chat: {e}")
     
     async def add_participant(
         self, 
-        name: str, 
-        instructions: str,
+        agent_name: str,
         role: GroupChatRole = GroupChatRole.PARTICIPANT,
-        **kwargs
+        priority: int = 1,
+        max_consecutive_turns: int = 3
     ) -> None:
         """Add a participant to the group chat."""
-        if not self.is_initialized:
-            await self.initialize()
+        # Verify agent exists in registry
+        agent = self.agent_registry.get_agent(agent_name)
+        if not agent:
+            raise ValueError(f"Agent {agent_name} not found in registry")
         
-        try:
-            # Create LangChain agent wrapper
-            agent = LangChainAgent(
-                name=name,
-                instructions=instructions,
-                llm=self.llm,
-                role=role,
-                can_initiate=kwargs.get('can_initiate', True),
-                max_consecutive_turns=kwargs.get('max_consecutive_turns', 3),
-                priority=kwargs.get('priority', 1)
-            )
-            
-            self.participants[name] = agent
-            self.consecutive_turns[name] = 0
-            
-            self.logger.info(f"Added participant: {name} with role: {role.value}")
-            
-        except Exception as e:
-            raise AgentInitializationException(f"Failed to add participant {name}: {e}")
-    
-    async def remove_participant(self, name: str) -> bool:
-        """Remove a participant from the group chat."""
-        if name in self.participants:
-            del self.participants[name]
-            if name in self.consecutive_turns:
-                del self.consecutive_turns[name]
-            
-            if self.current_speaker == name:
-                self.current_speaker = None
-            
-            self.logger.info(f"Removed participant: {name}")
-            return True
-        return False
-    
-    def get_participants(self) -> List[str]:
-        """Get list of participant names."""
-        return list(self.participants.keys())
-    
-    def get_active_participants(self) -> List[str]:
-        """Get list of participants who can currently speak."""
-        return [
-            name for name, agent in self.participants.items()
-            if agent.role != GroupChatRole.OBSERVER
-        ]
+        # Store participant info
+        self.participants[agent_name] = GroupChatParticipantInfo(
+            agent_name=agent_name,
+            role=role,
+            priority=priority,
+            max_consecutive_turns=max_consecutive_turns
+        )
+        self.consecutive_turns[agent_name] = 0
+        
+        self.logger.info(f"Added participant: {agent_name} with role: {role.value}")
     
     async def _select_next_speaker(self, message: str, current_speaker: Optional[str] = None) -> str:
-        """Select the next speaker based on the message content and group dynamics."""
+        """Select the next speaker based on message content and agent expertise."""
         active_participants = self.get_active_participants()
         
         if not active_participants:
             raise RuntimeError("No active participants available")
-        
-        # If auto-selection is disabled, return first available participant
-        if not self.config.auto_select_speaker:
-            return active_participants[0]
         
         # Check consecutive turn limits
         available_participants = [
@@ -194,120 +140,81 @@ class LangChainAgentGroupChat:
         ]
         
         if not available_participants:
-            # Reset consecutive turns and use all active participants
+            # Reset consecutive turns
             for name in active_participants:
                 self.consecutive_turns[name] = 0
             available_participants = active_participants
         
-        # Simple selection strategy: rotate through participants
-        # In a more sophisticated implementation, you could use an LLM to select based on expertise
-        if current_speaker and current_speaker in available_participants:
-            current_index = available_participants.index(current_speaker)
-            next_index = (current_index + 1) % len(available_participants)
-            return available_participants[next_index]
+        # Content-based selection
+        message_lower = message.lower()
         
-        # Sort by priority and return highest priority participant
-        available_participants.sort(
-            key=lambda name: self.participants[name].priority, 
-            reverse=True
-        )
+        # Check for people-related queries
+        if any(keyword in message_lower for keyword in ['who', 'person', 'people', 'team', 'member', 'employee', 'colleague']):
+            people_agents = [name for name in available_participants if 'people' in name.lower()]
+            if people_agents:
+                self.logger.info(f"Selected {people_agents[0]} for people-related query")
+                return people_agents[0]
         
-        return available_participants[0]
+        # Check for knowledge/documentation queries
+        if any(keyword in message_lower for keyword in ['what', 'how', 'explain', 'documentation', 'knowledge', 'information', 'guide', 'tutorial']):
+            knowledge_agents = [name for name in available_participants if 'knowledge' in name.lower()]
+            if knowledge_agents:
+                self.logger.info(f"Selected {knowledge_agents[0]} for knowledge query")
+                return knowledge_agents[0]
+        
+        # Try intelligent selection with LLM if available
+        if self.routing_llm and len(available_participants) > 1:
+            try:
+                selected = await self._intelligent_speaker_selection(message, available_participants)
+                if selected in available_participants:
+                    self.logger.info(f"LLM selected {selected} as next speaker")
+                    return selected
+            except Exception as e:
+                self.logger.warning(f"Intelligent selection failed: {e}")
+        
+        # Default: rotate or use priority
+        if current_speaker in available_participants:
+            idx = available_participants.index(current_speaker)
+            next_idx = (idx + 1) % len(available_participants)
+            return available_participants[next_idx]
+        
+        # Use highest priority
+        return max(available_participants, key=lambda n: self.participants[n].priority)
     
-    async def _intelligent_speaker_selection(self, message: str, conversation_context: str) -> str:
-        """Use LLM to intelligently select the next speaker based on content."""
-        active_participants = self.get_active_participants()
+    async def _intelligent_speaker_selection(self, message: str, available_participants: List[str]) -> str:
+        """Use LLM to select the best agent for the message."""
+        # Get agent descriptions
+        agent_descriptions = []
+        for name in available_participants:
+            agent = self.agent_registry.get_agent(name)
+            if agent and hasattr(agent, 'config'):
+                agent_descriptions.append(f"{name}: {agent.config.instructions}")
         
-        if len(active_participants) <= 1:
-            return active_participants[0] if active_participants else ""
-        
-        # Create participant descriptions
-        participant_descriptions = []
-        for name in active_participants:
-            agent = self.participants[name]
-            participant_descriptions.append(f"- {name}: {agent.instructions[:100]}...")
-        
-        # Create selection prompt
-        selection_prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are a conversation moderator. Given the current message and conversation context, 
-            select the most appropriate participant to respond next. Consider their expertise and the conversation flow.
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """Select the most appropriate agent to respond to the message.
             
-            Available participants:
-            {participants}
-            
-            Recent conversation context:
-            {context}
-            
-            Current message: {message}
-            
-            Respond with ONLY the participant name, nothing else."""),
+Available agents:
+{agents}
+
+User message: {message}
+
+Respond with ONLY the agent name.""")
         ])
         
-        try:
-            chain = selection_prompt | self.llm | self.parser
-            selected = await chain.ainvoke({
-                "participants": "\n".join(participant_descriptions),
-                "context": conversation_context[-500:],  # Last 500 chars
-                "message": message
-            })
-            
-            selected = selected.strip()
-            if selected in active_participants:
-                return selected
-            
-        except Exception as e:
-            self.logger.warning(f"Error in intelligent speaker selection: {e}")
+        chain = prompt | self.routing_llm | self.parser
+        result = await chain.ainvoke({
+            "agents": "\n".join(agent_descriptions),
+            "message": message
+        })
         
-        # Fallback to simple selection
-        return await self._select_next_speaker(message, self.current_speaker)
+        return result.strip()
     
-    def _build_conversation_context(self) -> str:
-        """Build a conversation context string from recent history."""
-        if not self.conversation_history:
-            return ""
-        
-        context_messages = []
-        for msg in self.conversation_history[-6:]:  # Last 6 messages
-            if isinstance(msg, HumanMessage):
-                speaker = getattr(msg, 'name', 'User')
-                context_messages.append(f"{speaker}: {msg.content}")
-            elif isinstance(msg, AIMessage):
-                speaker = getattr(msg, 'name', 'Assistant')
-                context_messages.append(f"{speaker}: {msg.content}")
-        
-        return "\n".join(context_messages)
-    
-    async def _should_terminate(self, message: str) -> bool:
-        """Check if the conversation should terminate."""
-        if not self.config.enable_termination_keyword:
-            return False
-        
-        if self.turn_count >= self.config.max_turns:
-            return True
-        
-        if self.config.termination_keyword.lower() in message.lower():
-            return True
-        
-        return False
-    
-    async def _get_agent_response(self, agent: LangChainAgent, message: str) -> str:
-        """Get response from a specific agent."""
-        # Build message chain with agent's system message and conversation history
-        messages = [SystemMessage(content=agent.get_system_message())]
-        
-        # Add recent conversation history
-        messages.extend(self.conversation_history[-10:])  # Last 10 messages for context
-        
-        # Add current message
-        messages.append(HumanMessage(content=message, name="GroupChat"))
-        
-        # Get response
-        response = await agent.llm.ainvoke(messages)
-        
-        if isinstance(response, AIMessage):
-            return response.content or ""
-        else:
-            return str(response)
+    def get_active_participants(self) -> List[str]:
+        """Get list of participants who can currently speak."""
+        return [
+            name for name, info in self.participants.items()
+            if info.role != GroupChatRole.OBSERVER
+        ]
     
     async def send_message(
         self, 
@@ -324,193 +231,114 @@ class LangChainAgentGroupChat:
         
         responses: List[AgentResponse] = []
         self.conversation_active = True
+        current_message = message
+        
+        # Add user message to history
+        user_msg = AgentMessage(
+            role=MessageRole.USER,
+            content=message,
+            metadata={"sender": sender or "User", "group_chat": self.name}
+        )
+        self.conversation_history.append(user_msg)
         
         try:
-            # Add initial message to history
-            initial_msg = HumanMessage(content=message, name=sender or "User")
-            self.conversation_history.append(initial_msg)
-            
-            current_message = message
-            conversation_context = self._build_conversation_context()
-            
-            while self.conversation_active and self.turn_count < self.config.max_turns:
-                # Select next speaker - use intelligent selection if enabled
-                if self.config.auto_select_speaker and len(self.get_active_participants()) > 2:
-                    next_speaker = await self._intelligent_speaker_selection(
-                        current_message, conversation_context
-                    )
-                else:
-                    next_speaker = await self._select_next_speaker(current_message, self.current_speaker)
-                
-                agent = self.participants[next_speaker]
-                
-                # Update conversation state
-                self.current_speaker = next_speaker
+            while self.turn_count < self.config.max_turns and self.conversation_active:
                 self.turn_count += 1
-                self.consecutive_turns[next_speaker] += 1
                 
-                # Reset consecutive turns for other participants
-                for name in self.consecutive_turns:
-                    if name != next_speaker:
-                        self.consecutive_turns[name] = 0
+                # Select next speaker
+                next_speaker = await self._select_next_speaker(current_message, self.current_speaker)
+                self.current_speaker = next_speaker
                 
-                self.logger.debug(f"Turn {self.turn_count}: {next_speaker} speaking")
+                # Update consecutive turns
+                for agent_name in self.consecutive_turns:
+                    if agent_name == next_speaker:
+                        self.consecutive_turns[agent_name] += 1
+                    else:
+                        self.consecutive_turns[agent_name] = 0
                 
-                # Get response from selected agent
-                try:
-                    response_content = await self._get_agent_response(agent, current_message)
-                    
-                    if not response_content:
-                        response_content = "I don't have a response at this time."
-                    
-                    # Add response to history
-                    ai_message = AIMessage(content=response_content, name=next_speaker)
-                    self.conversation_history.append(ai_message)
-                    
-                    # Create response object
-                    response = AgentResponse(
-                        content=response_content,
-                        agent_name=next_speaker,
-                        metadata={
-                            **(metadata or {}),
-                            "turn": self.turn_count,
-                            "group_chat": self.name,
-                            "speaker_role": agent.role.value,
-                            "total_participants": len(self.participants)
-                        }
-                    )
-                    
-                    responses.append(response)
-                    
-                    # Check for termination
-                    if await self._should_terminate(response_content):
-                        self.conversation_active = False
-                        self.logger.info(f"Conversation terminated after {self.turn_count} turns")
-                        break
-                    
-                    current_message = response_content
-                    conversation_context = self._build_conversation_context()
-                    
-                except Exception as e:
-                    self.logger.error(f"Error getting response from {next_speaker}: {e}")
-                    error_response = AgentResponse(
-                        content=f"I encountered an error: {e}",
-                        agent_name=next_speaker,
-                        metadata={
-                            **(metadata or {}),
-                            "error": True,
-                            "turn": self.turn_count
-                        }
-                    )
-                    responses.append(error_response)
+                # Get the actual agent from registry
+                agent = self.agent_registry.get_agent(next_speaker)
+                if not agent:
+                    self.logger.error(f"Agent {next_speaker} not found in registry")
+                    continue
+                
+                # Get response from the actual agent
+                agent_response = await agent.process_message(
+                    current_message,
+                    history=self.conversation_history,
+                    metadata={
+                        "group_chat": self.name,
+                        "turn": self.turn_count,
+                        "speaker_role": self.participants[next_speaker].role.value,
+                        "total_participants": len(self.participants)
+                    }
+                )
+                
+                # Update response with group chat metadata
+                agent_response.metadata.update({
+                    "turn": self.turn_count,
+                    "group_chat": self.name,
+                    "speaker_role": self.participants[next_speaker].role.value,
+                    "total_participants": len(self.participants)
+                })
+                
+                responses.append(agent_response)
+                
+                # Add to conversation history
+                assistant_msg = AgentMessage(
+                    role=MessageRole.ASSISTANT,
+                    content=agent_response.content,
+                    metadata={
+                        "agent": next_speaker,
+                        "turn": self.turn_count
+                    }
+                )
+                self.conversation_history.append(assistant_msg)
+                
+                # Check for termination
+                if await self._should_terminate(agent_response.content):
+                    self.conversation_active = False
+                    self.logger.info(f"Conversation terminated after {self.turn_count} turns")
                     break
-            
-            if self.turn_count >= self.config.max_turns:
-                self.logger.info(f"Conversation reached maximum turns ({self.config.max_turns})")
-            
-            return responses
-            
+                
+                # Update current message for next iteration
+                current_message = agent_response.content
+                
+                # Small delay between responses
+                await asyncio.sleep(self.config.response_wait_time)
+        
         except Exception as e:
             self.logger.error(f"Error in group chat: {e}")
-            raise
+            error_response = AgentResponse(
+                content=f"Group chat error: {str(e)}",
+                agent_name="system",
+                metadata={"error": str(e)}
+            )
+            responses.append(error_response)
+        
         finally:
             self.conversation_active = False
+        
+        return responses
     
-    async def reset_conversation(self) -> None:
-        """Reset the conversation state."""
-        self.conversation_history = []
-        self.current_speaker = None
-        self.turn_count = 0
-        self.consecutive_turns = {name: 0 for name in self.participants}
-        self.conversation_active = False
-        self.logger.info("Conversation state reset")
+    async def _should_terminate(self, message: str) -> bool:
+        """Check if conversation should terminate."""
+        if self.turn_count >= self.config.max_turns:
+            return True
+        
+        if self.config.enable_termination_keyword:
+            if self.config.termination_keyword.lower() in message.lower():
+                return True
+        
+        return False
     
-    async def get_conversation_summary(self) -> str:
+    def get_conversation_summary(self) -> Dict[str, Any]:
         """Get a summary of the conversation."""
-        if not self.conversation_history:
-            return "No conversation yet."
-        
-        messages = []
-        for msg in self.conversation_history:
-            if isinstance(msg, HumanMessage):
-                speaker = getattr(msg, 'name', 'User')
-                messages.append(f"{speaker}: {msg.content}")
-            elif isinstance(msg, AIMessage):
-                speaker = getattr(msg, 'name', 'Assistant')
-                messages.append(f"{speaker}: {msg.content}")
-            elif isinstance(msg, SystemMessage):
-                messages.append(f"System: {msg.content}")
-        
-        return "\n".join(messages)
-    
-    async def generate_conversation_summary(self) -> str:
-        """Generate an AI-powered summary of the conversation."""
-        if not self.conversation_history:
-            return "No conversation to summarize."
-        
-        conversation_text = await self.get_conversation_summary()
-        
-        summary_prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are a conversation summarizer. Provide a concise summary of the group conversation, 
-            highlighting key points, decisions made, and action items discussed. Keep it under 200 words."""),
-            ("human", "Summarize this group conversation:\n\n{conversation}")
-        ])
-        
-        try:
-            chain = summary_prompt | self.llm | self.parser
-            summary = await chain.ainvoke({"conversation": conversation_text})
-            return summary.strip()
-        except Exception as e:
-            self.logger.error(f"Error generating summary: {e}")
-            return f"Error generating summary: {e}"
-    
-    async def cleanup(self) -> None:
-        """Cleanup resources."""
-        self.participants.clear()
-        self.conversation_history = []
-        self.conversation_active = False
-        self.logger.info(f"Cleaned up group chat: {self.name}")
-
-
-async def create_example_group_chat() -> LangChainAgentGroupChat:
-    """Create an example group chat with sample agents."""
-    config = GroupChatConfig(
-        name="Example LangChain Group Chat",
-        description="A sample group chat with multiple AI agents using LangChain",
-        max_turns=8,
-        auto_select_speaker=True
-    )
-    
-    group_chat = LangChainAgentGroupChat(config)
-    await group_chat.initialize()
-    
-    # Add sample participants
-    await group_chat.add_participant(
-        name="Analyst",
-        instructions="You are a data analyst. Provide analytical insights and ask clarifying questions about data. Focus on quantitative analysis and data-driven recommendations.",
-        role=GroupChatRole.PARTICIPANT,
-        priority=2
-    )
-    
-    await group_chat.add_participant(
-        name="Researcher", 
-        instructions="You are a researcher. Provide research-based information and suggest areas for investigation. Focus on evidence-based insights and thorough investigation.",
-        role=GroupChatRole.PARTICIPANT,
-        priority=1
-    )
-    
-    await group_chat.add_participant(
-        name="Facilitator",
-        instructions="You are a meeting facilitator. Keep the discussion on track, summarize key points, and ensure all participants contribute meaningfully.",
-        role=GroupChatRole.FACILITATOR,
-        priority=3
-    )
-    
-    await group_chat.add_participant(
-        name="Strategist",
-        instructions="You are a strategic advisor. Think about long-term implications, identify risks and opportunities, and provide strategic recommendations.",
-        role=GroupChatRole.PARTICIPANT,
-        priority=2
-    )
-    
-    return group_chat
+        return {
+            "group_chat_name": self.name,
+            "total_turns": self.turn_count,
+            "participants": list(self.participants.keys()),
+            "active_participants": self.get_active_participants(),
+            "conversation_active": self.conversation_active,
+            "message_count": len(self.conversation_history)
+        }

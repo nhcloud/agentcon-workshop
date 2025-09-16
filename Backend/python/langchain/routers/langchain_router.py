@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 # Add the parent directory to the Python path to import shared modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from langchain_azure_ai.chat_models import AzureAIChatCompletionsModel
+from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -19,7 +19,7 @@ class LangChainLLMRouter(IRouter):
     """Router that uses LangChain LLM for intelligent routing decisions."""
     
     def __init__(self, routing_prompt: Optional[str] = None):
-        self.llm: Optional[AzureAIChatCompletionsModel] = None
+        self.llm: Optional[AzureChatOpenAI] = None
         self.parser = StrOutputParser()
         self.routing_prompt = routing_prompt or self._default_routing_prompt()
         self.prompt_template = ChatPromptTemplate.from_messages([
@@ -57,18 +57,25 @@ User message:
     
     async def initialize(self) -> None:
         """Initialize the LangChain LLM for routing."""
-        endpoint = os.getenv("AZURE_INFERENCE_ENDPOINT")
-        credential = os.getenv("AZURE_INFERENCE_CREDENTIAL")
-        model = os.getenv("GENERIC_MODEL", "gpt-4o-mini")
+        # Azure OpenAI configuration
+        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        api_key = os.getenv("AZURE_OPENAI_API_KEY")
+        api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
+        deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o-mini")
         
-        if not endpoint:
-            raise RoutingException("AZURE_INFERENCE_ENDPOINT required for LLM router")
+        if not azure_endpoint:
+            raise RoutingException("AZURE_OPENAI_ENDPOINT required for LLM router")
+        if not api_key:
+            raise RoutingException("AZURE_OPENAI_API_KEY required for LLM router")
         
         try:
-            self.llm = AzureAIChatCompletionsModel(
-                endpoint=endpoint,
-                credential=credential,
-                model=model,
+            self.llm = AzureChatOpenAI(
+                azure_endpoint=azure_endpoint,
+                api_key=api_key,
+                api_version=api_version,
+                deployment_name=deployment_name,
+                temperature=0.3,  # Lower temperature for routing decisions
+                max_tokens=150,  # Routing decisions should be concise
             )
         except Exception as e:
             raise RoutingException(f"Failed to initialize routing LLM: {e}")

@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 # Add the parent directory to the Python path to import shared modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from langchain_azure_ai.chat_models import AzureAIChatCompletionsModel
+from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -33,33 +33,40 @@ from shared import (
 
 
 class LangChainGenericAgent(BaseAgent):
-    """Generic agent using LangChain Azure AI Chat Completions."""
+    """Generic agent using LangChain Azure OpenAI."""
     
     def __init__(self, config: AgentConfig):
         super().__init__(config)
-        self.llm: Optional[AzureAIChatCompletionsModel] = None
+        self.llm: Optional[AzureChatOpenAI] = None
         self.system_message = config.instructions or "You are a helpful AI assistant."
     
     async def initialize(self) -> None:
-        """Initialize the LangChain agent."""
+        """Initialize the LangChain agent with Azure OpenAI."""
         await super().initialize()
         
-        endpoint = os.getenv("AZURE_INFERENCE_ENDPOINT")
-        credential = os.getenv("AZURE_INFERENCE_CREDENTIAL")
-        model = os.getenv("GENERIC_MODEL", "gpt-4o-mini")
+        # Azure OpenAI configuration
+        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        api_key = os.getenv("AZURE_OPENAI_API_KEY")
+        api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
+        deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o-mini")
         
-        if not endpoint:
-            raise AgentInitializationException("AZURE_INFERENCE_ENDPOINT is required")
+        if not azure_endpoint:
+            raise AgentInitializationException("AZURE_OPENAI_ENDPOINT is required")
+        if not api_key:
+            raise AgentInitializationException("AZURE_OPENAI_API_KEY is required")
         
         try:
-            self.llm = AzureAIChatCompletionsModel(
-                endpoint=endpoint,
-                credential=credential,
-                model=model,
+            self.llm = AzureChatOpenAI(
+                azure_endpoint=azure_endpoint,
+                api_key=api_key,
+                api_version=api_version,
+                deployment_name=deployment_name,
+                temperature=0.7,
+                max_tokens=800,
             )
-            self.logger.info(f"Initialized LangChain agent with model: {model}")
+            self.logger.info(f"Initialized LangChain agent with deployment: {deployment_name}")
         except Exception as e:
-            raise AgentInitializationException(f"Failed to initialize LangChain model: {e}")
+            raise AgentInitializationException(f"Failed to initialize Azure OpenAI model: {e}")
     
     def _convert_history_to_langchain(self, history: List[AgentMessage]) -> List[BaseMessage]:
         """Convert AgentMessage history to LangChain messages."""

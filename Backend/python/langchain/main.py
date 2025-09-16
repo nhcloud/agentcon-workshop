@@ -18,7 +18,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from shared import (
-    AgentRegistry, AgentConfig, AgentMessage, AgentResponse, MessageRole,
+    AgentRegistry, AgentConfig, AgentMessage, AgentResponse, MessageRole, AgentType,
     YamlConfigManager, ConfigFactory, SessionManagerFactory, MessageCache,
     PatternRouter, HistoryAwareRouter, setup_logging, HealthChecker
 )
@@ -376,11 +376,10 @@ async def reload_agent(agent_name: str):
 
 # Group Chat functionality
 from agents.agent_group_chat import (
-    LangChainAgentGroupChat, 
+    EnhancedLangChainAgentGroupChat, 
     GroupChatConfig, 
     GroupChatRole,
-    GroupChatParticipant,
-    LangChainAgent
+    GroupChatParticipantInfo
 )
 
 class GroupChatRequest(BaseModel):
@@ -409,7 +408,7 @@ class GroupChatConfigRequest(BaseModel):
 
 
 # Store group chats by session
-GROUP_CHATS: Dict[str, LangChainAgentGroupChat] = {}
+GROUP_CHATS: Dict[str, EnhancedLangChainAgentGroupChat] = {}
 
 
 @app.post("/group-chat", response_model=GroupChatResponse)
@@ -431,15 +430,26 @@ async def group_chat_endpoint(request: GroupChatRequest):
                 auto_select_speaker=request.config.get("auto_select_speaker", True) if request.config else True
             )
             
-            group_chat = LangChainAgentGroupChat(config)
+            group_chat = EnhancedLangChainAgentGroupChat(config, agent_registry)
             await group_chat.initialize()
             
             # Add participants from request or use defaults
             if request.participants:
                 for participant in request.participants:
+                    # First ensure agent is registered
+                    agent_name = participant["name"]
+                    if agent_name not in agent_registry.get_available_agents():
+                        # Register a generic agent with the provided instructions
+                        agent_config = AgentConfig(
+                            name=agent_name,
+                            agent_type=AgentType.GENERIC,
+                            instructions=participant["instructions"],
+                            enabled=True
+                        )
+                        await agent_registry.register_agent(agent_config)
+                    
                     await group_chat.add_participant(
-                        name=participant["name"],
-                        instructions=participant["instructions"],
+                        agent_name=participant["name"],
                         role=GroupChatRole(participant.get("role", "participant")),
                         priority=participant.get("priority", 1),
                         max_consecutive_turns=participant.get("max_consecutive_turns", 3)
@@ -449,12 +459,29 @@ async def group_chat_endpoint(request: GroupChatRequest):
                 available_agents = agent_registry.get_available_agents()
                 for agent_name in available_agents[:3]:  # Limit to 3 for demo
                     agent = agent_registry.get_agent(agent_name)
-                    await group_chat.add_participant(
-                        name=agent_name,
-                        instructions=f"You are {agent_name}. Provide helpful responses based on your expertise.",
-                        role=GroupChatRole.PARTICIPANT,
-                        priority=1
-                    )
+                    if agent and hasattr(agent, 'config'):
+                        # Use the actual agent's instructions and configuration
+                        instructions = agent.config.instructions
+                        # Set priority based on agent type
+                        priority = 1
+                        if agent.config.agent_type == AgentType.KNOWLEDGE_FINDER:
+                            priority = 3  # Higher priority for knowledge queries
+                        elif agent.config.agent_type == AgentType.PEOPLE_LOOKUP:
+                            priority = 2
+                        
+                        await group_chat.add_participant(
+                            agent_name=agent_name,
+                            role=GroupChatRole.PARTICIPANT,
+                            priority=priority,
+                            max_consecutive_turns=2  # Limit consecutive turns to encourage rotation
+                        )
+                    else:
+                        # Fallback if agent doesn't have config
+                        await group_chat.add_participant(
+                            agent_name=agent_name,
+                            role=GroupChatRole.PARTICIPANT,
+                            priority=1
+                        )
             
             GROUP_CHATS[session_id] = group_chat
         
@@ -509,7 +536,7 @@ async def create_group_chat(request: GroupChatConfigRequest):
             auto_select_speaker=request.auto_select_speaker
         )
         
-        group_chat = LangChainAgentGroupChat(config)
+        group_chat = EnhancedLangChainAgentGroupChat(config, agent_registry)
         await group_chat.initialize()
         
         # Add participants
@@ -692,26 +719,30 @@ async def create_group_chat_from_template(request: Dict[str, Any]):
         session_id = str(uuid.uuid4())
         
         # Create agent group chat
-        group_chat = LangChainAgentGroupChat(config=group_chat_config)
+        group_chat = EnhancedLangChainAgentGroupChat(config=group_chat_config, agent_registry=agent_registry)
+        await group_chat.initialize()
         
         # Add participants from template
         for participant_config in participants_config:
             # Create agent with template instructions
             agent_config = AgentConfig(
-                agent_type="group_chat_participant",
+                name=participant_config["name"],
+                agent_type=AgentType.GENERIC,
                 instructions=participant_config["instructions"],
-                model_config=group_chat.model  # Use the LangChain model config
+                enabled=True
             )
             
-            participant = GroupChatParticipant(
-                name=participant_config["name"],
-                agent=await agent_registry.create_agent(agent_config),
+            # TODO: Update this to work with EnhancedLangChainAgentGroupChat
+            # For now, register the agent and add as participant
+            agent_name = participant_config["name"]
+            await agent_registry.register_agent(agent_config)
+            
+            await group_chat.add_participant(
+                agent_name=agent_name,
                 role=GroupChatRole(participant_config["role"]),
                 priority=participant_config["priority"],
                 max_consecutive_turns=participant_config["max_consecutive_turns"]
             )
-            
-            group_chat.add_participant(participant)
         
         # Store the group chat
         GROUP_CHATS[session_id] = group_chat

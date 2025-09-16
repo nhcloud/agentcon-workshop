@@ -11,10 +11,10 @@ import logging
 from dotenv import load_dotenv
 
 from agents.agent_group_chat import (
-    LangChainAgentGroupChat, 
+    EnhancedLangChainAgentGroupChat, 
     GroupChatConfig, 
     GroupChatRole,
-    create_example_group_chat
+    GroupChatParticipantInfo
 )
 
 # Configure logging

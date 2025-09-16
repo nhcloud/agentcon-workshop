@@ -14,10 +14,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 try:
     print("Testing LangChain imports...")
     from agents.agent_group_chat import (
-        LangChainAgentGroupChat, 
+        EnhancedLangChainAgentGroupChat, 
         GroupChatConfig, 
         GroupChatRole,
-        LangChainAgent
+        GroupChatParticipantInfo
     )
     print("✓ LangChain imports successful")
 except ImportError as e:
@@ -44,8 +44,8 @@ async def test_langchain_basic():
             auto_select_speaker=True
         )
         
-        # Initialize group chat
-        group_chat = LangChainAgentGroupChat(config)
+        # Initialize group chat (using None as placeholder for agent_registry in test)
+        group_chat = EnhancedLangChainAgentGroupChat(config, None)
         
         # Test initialization without actual Azure credentials
         print("✓ LangChain group chat object created successfully")
