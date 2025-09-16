@@ -389,6 +389,9 @@ class GroupChatRequest(BaseModel):
     participants: Optional[List[Dict[str, Any]]] = None
     sender: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+    summarize: Optional[bool] = False
+    mode: Optional[str] = "sequential"  # "sequential" | "broadcast"
+    agents: Optional[List[str]] = None  # subset filter when creating new chat
 
 
 class GroupChatResponse(BaseModel):
@@ -397,6 +400,9 @@ class GroupChatResponse(BaseModel):
     total_turns: int
     active_participants: List[str]
     metadata: Optional[Dict[str, Any]] = None
+    summary: Optional[str] = None
+    # Backward compatible single content field (summary preferred, else last agent response)
+    content: Optional[str] = None
 
 
 class GroupChatConfigRequest(BaseModel):
@@ -457,6 +463,9 @@ async def group_chat_endpoint(request: GroupChatRequest):
             else:
                 # Add default participants: include all available agents prioritized by specialization
                 available_agents = agent_registry.get_available_agents()
+                if request.agents:
+                    # Filter to requested subset that are available
+                    available_agents = [a for a in available_agents if a in request.agents]
                 def sort_key(name: str):
                     agent = agent_registry.get_agent(name)
                     if agent and hasattr(agent, 'config'):
@@ -492,12 +501,19 @@ async def group_chat_endpoint(request: GroupChatRequest):
         
         group_chat = GROUP_CHATS[session_id]
         
-        # Send message to group chat
-        agent_responses = await group_chat.send_message(
-            request.message,
-            sender=request.sender or "User",
-            metadata=request.metadata
-        )
+        # Send or broadcast message depending on mode
+        if request.mode == "broadcast":
+            agent_responses = await group_chat.broadcast_message(
+                request.message,
+                sender=request.sender or "User",
+                metadata=request.metadata
+            )
+        else:
+            agent_responses = await group_chat.send_message(
+                request.message,
+                sender=request.sender or "User",
+                metadata=request.metadata
+            )
         
         # Convert to API response format
         responses = []
@@ -511,6 +527,17 @@ async def group_chat_endpoint(request: GroupChatRequest):
                 "metadata": agent_response.metadata
             })
         
+        summary_text = None
+        if request.summarize:
+            try:
+                summary_text = await group_chat.generate_summary()
+            except Exception as e:
+                logger.warning(f"Failed to generate summary: {e}")
+                summary_text = None
+
+        # Determine backward compatible content
+        content_value = summary_text or (responses[-1]["content"] if responses else None)
+
         return GroupChatResponse(
             responses=responses,
             conversation_id=session_id,
@@ -520,7 +547,9 @@ async def group_chat_endpoint(request: GroupChatRequest):
                 "group_chat_name": group_chat.name,
                 "max_turns": group_chat.config.max_turns,
                 "conversation_active": group_chat.conversation_active
-            }
+            },
+            summary=summary_text,
+            content=content_value
         )
     
     except Exception as e:

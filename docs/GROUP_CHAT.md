@@ -220,6 +220,60 @@ group_chats:
       max_turns: 10
       auto_select_speaker: true
       participants:
+
+### Summarization (LangChain)
+You can request an aggregate summary of the multi-agent interaction by setting `"summarize": true` in the request body. The API will include a `summary` field in the response.
+
+```bash
+curl -X POST http://localhost:8000/group-chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Who is Jai and what are his current responsibilities?",
+    "session_id": "6b3d8220-8d3d-4a2b-a09a-3b760f29421a",
+    "summarize": true
+  }'
+```
+
+Response snippet:
+```json
+{
+  "responses": [ ... ],
+  "summary": "Objective: ... Key Facts: ... Perspectives: ... Open Questions: ...",
+  "content": "(Backward compatible single string: summary if present else last agent response)"
+}
+```
+If no LLM routing model is configured, a heuristic fallback summary is returned.
+
+#### Dedicated Summary Model (Optional)
+Set the following environment variables to use a higher-context / cheaper model for summarization:
+```env
+AZURE_OPENAI_SUMMARY_DEPLOYMENT_NAME=gpt-4o-mini
+SUMMARY_MAX_TOKENS=800                 # Max tokens requested for the summary
+SUMMARY_TRANSCRIPT_CHAR_LIMIT=6000     # Cap on transcript characters fed to summary model
+```
+If `AZURE_OPENAI_SUMMARY_DEPLOYMENT_NAME` is not set the system reuses the routing model. The endpoint also returns a top-level `content` field for legacy UI components expecting a single string (prefers `summary`, falls back to last agent message).
+
+### Broadcast vs Sequential Modes
+You can control how a group chat processes a user prompt:
+
+| Mode | Behavior |
+|------|----------|
+| `sequential` (default) | Agents take turns; each agent may build on the previous agent's response until max_turns or termination. |
+| `broadcast` | All active (or filtered) agents answer the original user message in parallel (one logical turn). No chaining between agents for that round. |
+
+Request example (broadcast with subset of agents):
+```bash
+curl -X POST http://localhost:8000/group-chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Compare architectural options for the new service.",
+    "mode": "broadcast",
+    "agents": ["knowledge_finder", "generic_agent"],
+    "summarize": true
+  }'
+```
+
+Response will contain one response per agent (single turn), plus optional `summary`.
         - name: "Role 1"
           role: "facilitator"
           priority: 3

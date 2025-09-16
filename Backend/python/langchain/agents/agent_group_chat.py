@@ -71,6 +71,11 @@ class EnhancedLangChainAgentGroupChat:
         
         # LangChain components for intelligent routing
         self.routing_llm: Optional[AzureChatOpenAI] = None
+        # Dedicated (optionally higher context) model for summarization
+        self.summary_llm: Optional[AzureChatOpenAI] = None
+        # Summary configuration (can be tuned via environment variables)
+        self.summary_max_tokens = int(os.getenv("SUMMARY_MAX_TOKENS", "800"))
+        self.summary_transcript_char_limit = int(os.getenv("SUMMARY_TRANSCRIPT_CHAR_LIMIT", "6000"))
         self.parser = StrOutputParser()
     
     async def initialize(self) -> None:
@@ -94,6 +99,28 @@ class EnhancedLangChainAgentGroupChat:
                     temperature=0.3,  # Low temperature for routing decisions
                     max_tokens=50,
                 )
+
+                # Initialize separate summary LLM if configured (falls back to routing model if not)
+                summary_deployment = os.getenv("AZURE_OPENAI_SUMMARY_DEPLOYMENT_NAME")
+                if summary_deployment:
+                    try:
+                        self.summary_llm = AzureChatOpenAI(
+                            azure_endpoint=azure_endpoint,
+                            openai_api_key=api_key,
+                            openai_api_version=api_version,
+                            deployment_name=summary_deployment,
+                            temperature=0.2,  # Slightly lower for concise summaries
+                            max_tokens=self.summary_max_tokens,
+                        )
+                        self.logger.info(
+                            f"Initialized dedicated summary LLM deployment='{summary_deployment}' max_tokens={self.summary_max_tokens}"
+                        )
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Failed to initialize dedicated summary LLM '{summary_deployment}', will fallback to routing model: {e}"
+                        )
+                else:
+                    self.logger.info("No AZURE_OPENAI_SUMMARY_DEPLOYMENT_NAME set; summary generation will reuse routing LLM")
             
             self.is_initialized = True
             self.logger.info(f"Initialized enhanced group chat: {self.name}")
@@ -320,6 +347,81 @@ Respond with ONLY the agent name.""")
             self.conversation_active = False
         
         return responses
+
+    async def broadcast_message(
+        self,
+        message: str,
+        sender: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> List[AgentResponse]:
+        """Broadcast the user's message to all active participants once (no chaining).
+
+        This mode is useful when the user expects parallel perspectives rather than
+        a multi-turn simulated conversation. Each agent receives the original user
+        prompt with the prior conversation history (if any) but not other agents'
+        fresh responses for this round.
+        """
+        if not self.is_initialized:
+            await self.initialize()
+
+        active = self.get_active_participants()
+        if not active:
+            raise RuntimeError("No active participants available")
+
+        # Record user message
+        user_msg = AgentMessage(
+            role=MessageRole.USER,
+            content=message,
+            metadata={"sender": sender or "User", "group_chat": self.name, "mode": "broadcast"}
+        )
+        self.conversation_history.append(user_msg)
+
+        responses: List[AgentResponse] = []
+        self.turn_count += 1  # Count this broadcast as one logical turn
+
+        # Process each agent independently
+        for agent_name in active:
+            agent = self.agent_registry.get_agent(agent_name)
+            if not agent:
+                self.logger.warning(f"Agent {agent_name} not found during broadcast")
+                continue
+            try:
+                agent_response = await agent.process_message(
+                    message,
+                    history=self.conversation_history,
+                    metadata={
+                        "group_chat": self.name,
+                        "turn": self.turn_count,
+                        "speaker_role": self.participants[agent_name].role.value,
+                        "mode": "broadcast",
+                        "total_participants": len(active)
+                    }
+                )
+                agent_response.metadata.update({
+                    "turn": self.turn_count,
+                    "group_chat": self.name,
+                    "speaker_role": self.participants[agent_name].role.value,
+                    "total_participants": len(active),
+                    "mode": "broadcast"
+                })
+                responses.append(agent_response)
+                # Append to history
+                self.conversation_history.append(
+                    AgentMessage(
+                        role=MessageRole.ASSISTANT,
+                        content=agent_response.content,
+                        metadata={"agent": agent_name, "turn": self.turn_count, "mode": "broadcast"}
+                    )
+                )
+            except Exception as e:
+                self.logger.error(f"Broadcast error for agent {agent_name}: {e}")
+                responses.append(AgentResponse(
+                    content=f"Error from {agent_name}: {e}",
+                    agent_name=agent_name,
+                    metadata={"error": str(e), "mode": "broadcast"}
+                ))
+
+        return responses
     
     async def _should_terminate(self, message: str) -> bool:
         """Check if conversation should terminate."""
@@ -342,3 +444,68 @@ Respond with ONLY the agent name.""")
             "conversation_active": self.conversation_active,
             "message_count": len(self.conversation_history)
         }
+
+    async def generate_summary(self, max_messages: int = 120) -> str:
+        """Generate an aggregate summary of the conversation.
+
+        Priority:
+        1. Use dedicated summary_llm if available.
+        2. Fallback to routing_llm.
+        3. Heuristic fallback.
+        """
+        if not self.conversation_history:
+            return "No conversation yet."
+
+        # Build transcript (newest tail up to max_messages) respecting char limit
+        relevant = self.conversation_history[-max_messages:]
+        transcript_lines: List[str] = []
+        current_chars = 0
+        for msg in relevant:
+            role = msg.metadata.get("agent") or msg.metadata.get("sender") or msg.role.value
+            snippet = msg.content.strip().replace("\n", " ")
+            # Light per-snippet cap to avoid single huge message dominating
+            if len(snippet) > 1000:
+                snippet = snippet[:997] + "..."
+            line = f"{role}: {snippet}"
+            # Enforce global transcript char limit
+            if current_chars + len(line) > self.summary_transcript_char_limit:
+                break
+            transcript_lines.append(line)
+            current_chars += len(line) + 1
+        transcript = "\n".join(transcript_lines)
+
+        # Decide which model to use
+        model = self.summary_llm or self.routing_llm
+        if not model:
+            # Heuristic fallback
+            return (
+                "Conversation Summary (heuristic)\n"
+                f"Participants: {', '.join(self.participants.keys())}\n"
+                f"Turns: {self.turn_count}\n" \
+                f"Recent Excerpt (truncated):\n{transcript[:1500]}"
+            )
+
+        try:
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", (
+                    "You are an expert analyst summarizing a multi-agent technical discussion. "
+                    "Produce a structured summary with the following sections in Markdown:\n\n"
+                    "**Objective**: one concise sentence.\n"
+                    "**Key Points**: bullet list of pivotal facts/findings.\n"
+                    "**Agent Contributions**: bullet list per agent <AgentName>: their unique inputs (skip redundancy).\n"
+                    "**Risks / Gaps**: bullet list (or 'None').\n"
+                    "**Next Steps**: actionable bullets.\n"
+                    "Keep total length proportionate to transcript; do not hallucinate.")),
+                ("human", "Transcript (recent tail):\n{transcript}\n\nGenerate the structured summary now.")
+            ])
+            chain = prompt | model | self.parser
+            result = await chain.ainvoke({"transcript": transcript})
+            return result.strip()
+        except Exception as e:
+            self.logger.warning(f"Summary generation failed, fallback used: {e}")
+            return (
+                "Conversation Summary (fallback)\n"
+                f"Participants: {', '.join(self.participants.keys())}\n"
+                f"Turns: {self.turn_count}\n"
+                f"Recent Excerpt (truncated):\n{transcript[:1500]}"
+            )

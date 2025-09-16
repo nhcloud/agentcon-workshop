@@ -68,22 +68,35 @@ class ChatService {
   /**
    * Send message to group chat
    */
-  async sendGroupChatMessage(message, sessionId = null, config = null) {
+  async sendGroupChatMessage(message, sessionId = null, config = null, summarize = true, mode = 'sequential', agents = null) {
     try {
       const response = await this.api.post('/group-chat', {
         message,
         session_id: sessionId,
-        config: config
+        config: config,
+        summarize: summarize,
+        mode: mode,
+        agents: agents
       });
 
+      // Backend now returns a list of agent responses and optional summary
+      // Normalize for UI consumption
+      const agentResponses = response.data.responses || [];
       return {
-        content: response.data.content,
-        participants: response.data.participants || [],
-        speaker: response.data.speaker,
-        sessionId: response.data.session_id,
+        sessionId: response.data.conversation_id || sessionId,
         timestamp: new Date().toISOString(),
-        turn_count: response.data.turn_count,
-        conversation_active: response.data.conversation_active
+        turns: response.data.total_turns,
+        active_participants: response.data.active_participants || [],
+        responses: agentResponses.map(r => ({
+          agent: r.agent,
+            content: r.content,
+            metadata: r.metadata || {},
+            message_id: r.message_id
+        })),
+        summary: response.data.summary || null,
+        // Backward compatible unified content for components expecting a single string
+        content: response.data.content || response.data.summary || (agentResponses.length ? agentResponses[agentResponses.length - 1].content : null),
+        metadata: response.data.metadata || {}
       };
     } catch (error) {
       throw new Error(error.response?.data?.detail || 'Failed to send group chat message');
