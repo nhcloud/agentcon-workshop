@@ -20,7 +20,7 @@ A comprehensive workshop for building sophisticated AI agent applications using 
 
 ## Prerequisites
 
-- Python 3.8+ with pip
+- Python 3.13+ with pip
 - Node.js 18+ with npm
 - Azure CLI installed
 - Azure Account with:
@@ -199,33 +199,83 @@ For workshop attendees who want to get started quickly:
 
 ```
 agents-workshop/
-├── backend/                    # Backend implementations
-│   ├── python/                # Python implementations
-│   │   ├── shared/            # Shared utilities and components
-│   │   ├── sk/               # Semantic Kernel implementation
-│   │   │   ├── main.py       # FastAPI application
-│   │   │   └── requirements.txt
-│   │   ├── langchain/        # LangChain implementation
-│   │   │   ├── main.py       # FastAPI application
-│   │   │   └── requirements.txt
-│   │   ├── examples/         # Python configuration examples
-│   │   └── env.template      # Environment variables template
-│   └── dotnet/               # .NET implementations
-│       ├── sk/               # Semantic Kernel .NET implementation
-│       ├── examples/         # .NET configuration examples
-│       └── agents-workshop.sln
-├── frontend/                 # React frontend application
+├── 📚 docs/                        # 👈 START HERE: Workshop guides
+│   ├── INSTALL.md                  #    Complete setup instructions
+│   ├── ENVIRONMENT_GUIDE.md        #    Azure configuration help
+│   └── GROUP_CHAT.md              #    Advanced multi-agent scenarios
+│
+├── 🐍 backend/python/              # Python implementations
+│   ├── 🚀 sk/                     # 👈 OPTION 1: Semantic Kernel
+│   │   ├── main.py                #    FastAPI server (run this!)
+│   │   ├── 📓 workshop_semantic_kernel_agents.ipynb  # Interactive tutorial
+│   │   ├── config.yml             #    Configuration file
+│   │   ├── example_group_chat.py  #    Group chat demo
+│   │   ├── agents/                #    Agent implementations
+│   │   ├── routers/               #    API endpoints
+│   │   └── requirements.txt       #    Dependencies
+│   │
+│   ├── 🚀 langchain/              # 👈 OPTION 2: LangChain
+│   │   ├── main.py                #    FastAPI server (run this!)
+│   │   ├── 📓 workshop_langchain_agents.ipynb       # Interactive tutorial
+│   │   ├── config.yml             #    Configuration file
+│   │   ├── example_group_chat.py  #    Group chat demo
+│   │   ├── agents/                #    Agent implementations
+│   │   ├── routers/               #    API endpoints
+│   │   └── requirements.txt       #    Dependencies
+│   │
+│   ├── 🔧 shared/                 # Common utilities (don't modify)
+│   │   ├── agents/                #    Base agent classes
+│   │   ├── config/                #    Configuration management
+│   │   ├── core/                  #    Core functionality
+│   │   └── sessions/              #    Session handling
+│   │
+│   ├── 📋 examples/               # Configuration templates
+│   │   ├── sk/                    #    Semantic Kernel configs
+│   │   └── langchain/             #    LangChain configs
+│   │
+│   ├── ⚙️ env.template            # 👈 COPY TO .env (configure Azure keys)
+│   ├── check_config.py            #    Validate your setup
+│   └── validate_env.py            #    Check environment
+│
+├── 🔷 backend/dotnet/             # .NET implementation
+│   ├── sk/                        # 👈 OPTION 3: .NET Semantic Kernel
+│   │   ├── Program.cs             #    C# entry point
+│   │   ├── 📓 workshop_dotnet_semantic_kernel.ipynb # C# tutorial
+│   │   ├── Controllers/           #    ASP.NET controllers
+│   │   ├── Agents/                #    Agent classes
+│   │   └── appsettings.json       #    Configuration
+│   ├── examples/                  #    .NET configuration examples
+│   └── agents-workshop.sln        #    Visual Studio solution
+│
+├── 🌐 frontend/                   # React web interface
 │   ├── src/
-│   │   ├── components/       # React components
-│   │   ├── services/         # API service layer
-│   │   └── App.js           # Main application component
-│   ├── public/               # Static assets
-│   └── package.json         # Frontend dependencies
-└── docs/                    # Documentation
-    ├── INSTALL.md           # Installation guide
-    ├── ENVIRONMENT_GUIDE.md # Environment setup
-    └── GROUP_CHAT.md        # Group chat documentation
+│   │   ├── App.js                 #    Main application
+│   │   ├── components/            #    UI components
+│   │   └── services/              #    API communication
+│   ├── package.json               #    Frontend dependencies
+│   └── PROFESSIONAL_UI_README.md  #    UI setup guide
+│
+└── 📄 README.md                   # 👈 YOU ARE HERE: Main documentation
 ```
+
+### 🎯 Workshop Navigation Guide
+
+**For Python Developers:**
+1. 📚 Read [docs/INSTALL.md](docs/INSTALL.md) for setup
+2. ⚙️ Copy `backend/python/env.template` to `backend/python/.env`
+3. 🚀 Choose your framework:
+   - **Semantic Kernel**: `cd backend/python/sk` → `uvicorn main:app --reload`
+   - **LangChain**: `cd backend/python/langchain` → `uvicorn main:app --reload`
+4. 📓 Open the `.ipynb` notebook for interactive learning
+
+**For .NET Developers:**
+1. 📚 Read [docs/INSTALL.md](docs/INSTALL.md) for setup
+2. 🔷 Open `backend/dotnet/agents-workshop.sln` in Visual Studio
+3. 📓 Start with the notebook: `workshop_dotnet_semantic_kernel.ipynb`
+
+**For Frontend Developers:**
+1. 🌐 `cd frontend` → `npm install` → `npm start`
+2. 📄 Read `PROFESSIONAL_UI_README.md` for UI details
 
 ## Development
 
