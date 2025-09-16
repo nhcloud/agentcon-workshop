@@ -1,20 +1,22 @@
-# Azure Multi-Agent Chatbot
+# Azure Multi-Agent Workshop
 
-A sophisticated chatbot application that combines Azure OpenAI services with a React frontend to provide both general chat capabilities and specialized people lookup functionality. The system uses FastAPI for the backend and implements a multi-agent architecture to route queries to the most appropriate AI model.
+A comprehensive workshop for building sophisticated AI agent applications using Azure OpenAI services with multiple implementation options. Learn to create chatbot applications with specialized agent routing, group chat capabilities, and modern React frontends. The workshop provides both Python (Semantic Kernel & LangChain) and .NET implementations to demonstrate multi-agent architectures.
 
-## Features
+## Workshop Features
 
-- 🤖 Dual Agent System:
-  - General Chat Agent (Azure OpenAI)
-  - People Lookup Agent (Azure AI Agent)
-- 🌐 Modern React Frontend
-- ⚡ FastAPI Backend
-- 🔄 Real-time Chat with SSE (Server-Sent Events)
-- 📊 Token Usage Tracking
-- 💾 Session Management
-- 🎨 Syntax Highlighting for Code Blocks
-- 📱 Haptic Feedback Support
-- 🔐 Azure Authentication Integration
+- 🤖 **Multiple Implementation Options**:
+  - Python Semantic Kernel implementation
+  - Python LangChain implementation  
+  - .NET Semantic Kernel implementation
+- 🔄 **Multi-Agent Architecture**: Agent routing and group chat scenarios
+- 🌐 **Modern React Frontend**: Professional chat interface
+- ⚡ **FastAPI Backend**: High-performance async API
+- 🔄 **Real-time Chat**: Server-Sent Events (SSE) streaming
+- 📊 **Token Usage Tracking**: Monitor AI service consumption
+- 💾 **Session Management**: Persistent chat history
+- 🎨 **Code Examples**: Comprehensive configuration samples
+- 📱 **Production Ready**: Azure authentication and security
+- � **Comprehensive Documentation**: Step-by-step guides
 
 ## Prerequisites
 
@@ -57,7 +59,7 @@ az account show
 3. Clone the repository:
 ```bash
 git clone <repository-url>
-cd Azure-Chatbot
+cd agents-workshop
 ```
 
 4. Create and activate a Python virtual environment:
@@ -71,18 +73,15 @@ source venv/bin/activate
 
 5. Install Python dependencies:
 ```bash
-cd Backend
+cd backend/python/sk
 pip install -r requirements.txt
-cd ..
+cd ../../..
 ```
 
 Required Python packages:
-- semantic-kernel
-- azure-ai-projects
-- azure-identity
-- python-dotenv
-- fastapi
-- uvicorn
+- **Semantic Kernel implementation**: semantic-kernel, azure-ai-projects, azure-identity
+- **LangChain implementation**: langchain, langchain-azure-ai, langchain-core
+- **Common dependencies**: python-dotenv, fastapi, uvicorn
 
 6. Set up frontend dependencies:
 ```bash
@@ -98,16 +97,17 @@ cp backend/python/env.template backend/python/.env
 
 8. Configure the following environment variables in `.env`:
 ```
-FRONTEND_URL=http://localhost:3000
-
 # Azure OpenAI Configuration
-AZURE_OPENAI_ENDPOINT=<your-azure-openai-endpoint>
-AZURE_OPENAI_DEPLOYMENT=<your-model-deployment-name>
-AZURE_OPENAI_KEY=<your-azure-openai-api-key>
+AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com
+AZURE_OPENAI_DEPLOYMENT=gpt-4o
+AZURE_OPENAI_KEY=your-azure-openai-api-key-here
 
-# Azure AI Project Configuration
-PROJECT_ENDPOINT=<your-project-endpoint>
-AGENT_ID=<your-agent-id>
+# Azure AI Foundry Configuration  
+PROJECT_ENDPOINT=https://your-resource-name.services.ai.azure.com/api/projects/your-project-name
+AGENT_ID=your-agent-id-here
+
+# Application Configuration
+FRONTEND_URL=http://localhost:3000
 ```
 
 9. Verify Azure services access:
@@ -121,11 +121,19 @@ az ai project list
 
 ## Running the Application
 
-1. Start the backend server:
-```bash
-# From the root directory
-uvicorn main:app --reload
-```
+1. Start the backend server (choose one):
+
+   **For Semantic Kernel implementation:**
+   ```bash
+   cd backend/python/sk
+   uvicorn main:app --reload
+   ```
+
+   **For LangChain implementation:**
+   ```bash
+   cd backend/python/langchain
+   uvicorn main:app --reload
+   ```
 
 2. Start the frontend development server:
 ```bash
@@ -136,45 +144,104 @@ npm start
 
 3. Access the application at `http://localhost:3000`
 
+## Quick Start
+
+For workshop attendees who want to get started quickly:
+
+1. **Clone and setup**:
+   ```bash
+   git clone <repository-url>
+   cd agents-workshop
+   cp backend/python/env.template backend/python/.env
+   ```
+
+2. **Configure Azure credentials** in `backend/python/.env`
+
+3. **Run Semantic Kernel implementation**:
+   ```bash
+   cd backend/python/sk
+   pip install -r requirements.txt
+   uvicorn main:app --reload
+   ```
+
+4. **Run frontend** (in new terminal):
+   ```bash
+   cd frontend
+   npm install && npm start
+   ```
+
 ## API Endpoints
 
+### Core Chat Endpoints
 - `POST /chat`: Send a chat message
-- `GET /chat/stream`: Stream chat responses
+- `POST /chat/stream`: Stream chat responses
 - `GET /messages/{session_id}`: Retrieve chat history
 - `DELETE /messages/{session_id}`: Delete chat history
-- `GET /sessions`: List active sessions
+
+### Agent Management
+- `GET /agents`: List available agents
+- `GET /agents/{agent_name}/info`: Get agent information
+- `POST /agents/{agent_name}/toggle`: Enable/disable agent
+
+### Group Chat (Advanced)
+- `POST /group-chat`: Create group chat session
+- `POST /group-chat/create`: Create group chat with configuration
+- `GET /group-chat/{session_id}/summary`: Get chat summary
+- `POST /group-chat/{session_id}/reset`: Reset group chat
+- `DELETE /group-chat/{session_id}`: Delete group chat
+- `GET /group-chats`: List active group chats
+
+### System & Health
 - `GET /health`: Health check endpoint
-- `GET /`: Welcome message
+- `GET /system/stats`: System statistics
 
 ## Project Structure
 
 ```
-AI/
-├── backend/                 # FastAPI backend application
-│   ├── __init__.py
-│   ├── main.py             # FastAPI application and routes
-│   ├── multi_agent.py      # Agent initialization and routing
-│   └── requirements.txt    # Python dependencies
-├── Frontend/               # React frontend application
+agents-workshop/
+├── backend/                    # Backend implementations
+│   ├── python/                # Python implementations
+│   │   ├── shared/            # Shared utilities and components
+│   │   ├── sk/               # Semantic Kernel implementation
+│   │   │   ├── main.py       # FastAPI application
+│   │   │   └── requirements.txt
+│   │   ├── langchain/        # LangChain implementation
+│   │   │   ├── main.py       # FastAPI application
+│   │   │   └── requirements.txt
+│   │   ├── examples/         # Python configuration examples
+│   │   └── env.template      # Environment variables template
+│   └── dotnet/               # .NET implementations
+│       ├── sk/               # Semantic Kernel .NET implementation
+│       ├── examples/         # .NET configuration examples
+│       └── agents-workshop.sln
+├── frontend/                 # React frontend application
 │   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── services/       # API service layer
-│   │   └── App.js         # Main application component
-│   ├── public/             # Static assets
-│   └── package.json       # Frontend dependencies
-├── backend/python/
-│   └── env.template       # Python environment variables template
-└── backend/dotnet/        # .NET implementations
+│   │   ├── components/       # React components
+│   │   ├── services/         # API service layer
+│   │   └── App.js           # Main application component
+│   ├── public/               # Static assets
+│   └── package.json         # Frontend dependencies
+└── docs/                    # Documentation
+    ├── INSTALL.md           # Installation guide
+    ├── ENVIRONMENT_GUIDE.md # Environment setup
+    └── GROUP_CHAT.md        # Group chat documentation
 ```
 
 ## Development
 
 ### Backend Development
 
-The backend is built with FastAPI and implements:
+The backend provides multiple implementation options:
+
+**Python Implementations:**
+- **Semantic Kernel (backend/python/sk/)**: Microsoft's Semantic Kernel with Azure AI integration
+- **LangChain (backend/python/langchain/)**: LangChain framework with Azure AI services
+- **Shared Components (backend/python/shared/)**: Common utilities and base classes
+
+**Key Features:**
 - Asynchronous request handling using FastAPI
 - Session management with chat history and response caching
-- Intelligent agent routing using Semantic Kernel
+- Intelligent agent routing and group chat capabilities
 - Azure OpenAI and Azure AI Project integration
 - Message hashing for consistent responses
 - Streaming responses using Server-Sent Events (SSE)

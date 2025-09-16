@@ -18,32 +18,39 @@ The system has been completely refactored using modern software engineering prin
 
 ```
 backend/
-├── shared/                     # Common libraries and interfaces
-│   ├── core/                   # Base classes and interfaces
-│   ├── agents/                 # Base agent implementations
-│   ├── config/                 # Configuration management
-│   ├── routers/                # Routing implementations
-│   └── sessions/               # Session management
-├── langchain/                  # LangChain implementation (Python)
-│   ├── agents/                 # LangChain-specific agents
-│   ├── routers/                # LangChain-specific routers
-│   ├── main.py                 # FastAPI application
-│   ├── config.yml              # Configuration file
-│   └── requirements.txt        # Dependencies
-├── python_semantic_kernel/     # Semantic Kernel implementation (Python)
-│   ├── agents/                 # SK-specific agents
-│   ├── routers/                # SK-specific routers
-│   ├── main.py                 # FastAPI application
-│   ├── config.yml              # Configuration file
-│   └── requirements.txt        # Dependencies
-├── dotnet_semantic_kernel/     # .NET 9 Semantic Kernel implementation
-│   ├── Controllers/            # ASP.NET Core API controllers
-│   ├── Services/               # Business logic services
-│   ├── Agents/                 # Agent implementations
-│   ├── Models/                 # Data transfer objects
-│   ├── Configuration/          # Configuration classes
-│   ├── Program.cs              # Application entry point
-│   └── DotNetSemanticKernel.csproj  # Project file
+├── python/                     # Python implementations
+│   ├── shared/                 # Common libraries and interfaces
+│   │   ├── core/               # Base classes and interfaces
+│   │   ├── agents/             # Base agent implementations
+│   │   ├── config/             # Configuration management
+│   │   ├── routers/            # Routing implementations
+│   │   └── sessions/           # Session management
+│   ├── langchain/              # LangChain implementation
+│   │   ├── agents/             # LangChain-specific agents
+│   │   ├── routers/            # LangChain-specific routers
+│   │   ├── main.py             # FastAPI application
+│   │   ├── config.yml          # Configuration file
+│   │   └── requirements.txt    # Dependencies
+│   ├── sk/                     # Semantic Kernel implementation
+│   │   ├── agents/             # SK-specific agents
+│   │   ├── routers/            # SK-specific routers
+│   │   ├── main.py             # FastAPI application
+│   │   ├── config.yml          # Configuration file
+│   │   └── requirements.txt    # Dependencies
+│   ├── examples/               # Python configuration examples
+│   └── env.template            # Environment variables template
+├── dotnet/                     # .NET implementations
+│   ├── agents-workshop.sln     # Visual Studio solution
+│   ├── sk/                     # .NET Semantic Kernel implementation
+│   │   ├── Controllers/        # ASP.NET Core API controllers
+│   │   ├── Services/           # Business logic services
+│   │   ├── Agents/             # Agent implementations
+│   │   ├── Models/             # Data transfer objects
+│   │   ├── Configuration/      # Configuration classes
+│   │   ├── Program.cs          # Application entry point
+│   │   └── DotNetSemanticKernel.csproj  # Project file
+│   └── examples/               # .NET configuration examples
+└── README.md                   # This file
 ```
 
 ## Key Features
@@ -120,7 +127,7 @@ python main.py
 
 1. **Install dependencies:**
 ```bash
-cd backend/python_semantic_kernel
+cd backend/python/sk
 pip install -r requirements.txt
 ```
 
@@ -141,7 +148,7 @@ python main.py
 
 1. **Install dependencies:**
 ```bash
-cd backend/dotnet_semantic_kernel
+cd backend/dotnet/sk
 dotnet restore
 ```
 
@@ -364,14 +371,14 @@ The current system provides multiple implementation options:
 - Professional session management
 - Enterprise-grade error handling
 
-### Enhanced Semantic Kernel Features (python_semantic_kernel/)
+### Enhanced Semantic Kernel Features (python/sk/)
 - Modern interface implementations
 - Improved Kernel initialization
 - Unified configuration system
 - Multi-provider support with health checking
 - Professional logging and monitoring
 
-### .NET 9 Semantic Kernel Features (dotnet_semantic_kernel/)
+### .NET 9 Semantic Kernel Features (dotnet/sk/)
 - Modern .NET 9 and C# implementation
 - Native Semantic Kernel integration
 - ASP.NET Core Web API with Swagger documentation
