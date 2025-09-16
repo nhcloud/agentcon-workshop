@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DotNetSemanticKernel")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1225f80f23693f46af08d345df1bf7755dbe22ce")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ffcbf8fec61040272c99fb9a39631a075914d020")]
 [assembly: System.Reflection.AssemblyProductAttribute("DotNetSemanticKernel")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DotNetSemanticKernel")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
