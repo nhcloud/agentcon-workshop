@@ -161,10 +161,46 @@ test-reports/
 *.temp
 .cache/ 
 
-Backend/dotnet/sk/obj/DotNetSemanticKernel.csproj.nuget.dgspec.json
-Backend/dotnet/sk/obj/project.assets.json
-Backend/dotnet/sk/obj/project.nuget.cache
-Backend/dotnet/sk/obj/Debug/net9.0/DotNetSemanticKernel.AssemblyInfo.cs
-Backend/dotnet/sk/obj/Debug/net9.0/DotNetSemanticKernel.AssemblyInfoInputs.cache
-Backend/dotnet/sk/obj/Debug/net9.0/DotNetSemanticKernel.assets.cache
-Backend/dotnet/sk/obj/Debug/net9.0/DotNetSemanticKernel.GeneratedMSBuildEditorConfig.editorconfig
+# .NET build artifacts (dotnet)
+# Use forward slashes in .gitignore even on Windows
+Backend/dotnet/**/bin/
+Backend/dotnet/**/obj/
+Backend/dotnet/**/obj/Debug/
+
+# Additional .NET / Visual Studio artifacts to ignore
+# Solution- and user-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+
+# Common build configurations
+Backend/dotnet/**/[Dd]ebug/
+Backend/dotnet/**/[Rr]elease/
+Backend/dotnet/**/[Bb]uild/
+
+# Test results and coverage
+Backend/dotnet/**/TestResults/
+Backend/dotnet/**/*.trx
+Backend/dotnet/**/*.coverage
+Backend/dotnet/**/*.coveragexml
+
+# Publishing outputs
+Backend/dotnet/**/publish/
+Backend/dotnet/**/app.publish/
+
+# NuGet
+Backend/dotnet/**/packages/
+Backend/dotnet/**/packages.lock.json
+Backend/dotnet/**/*.nupkg
+Backend/dotnet/**/*.snupkg
+
+# Profiling / diagnostics
+Backend/dotnet/**/*.psess
+Backend/dotnet/**/*.vsp
+Backend/dotnet/**/*.vspx
+
+# ReSharper / Rider settings (per-user)
+Backend/dotnet/**/_ReSharper*/
+Backend/dotnet/**/*.DotSettings.user
