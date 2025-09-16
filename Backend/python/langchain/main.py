@@ -455,33 +455,38 @@ async def group_chat_endpoint(request: GroupChatRequest):
                         max_consecutive_turns=participant.get("max_consecutive_turns", 3)
                     )
             else:
-                # Add default participants from registered agents
+                # Add default participants: include all available agents prioritized by specialization
                 available_agents = agent_registry.get_available_agents()
-                for agent_name in available_agents[:3]:  # Limit to 3 for demo
-                    agent = agent_registry.get_agent(agent_name)
+                def sort_key(name: str):
+                    agent = agent_registry.get_agent(name)
                     if agent and hasattr(agent, 'config'):
-                        # Use the actual agent's instructions and configuration
-                        instructions = agent.config.instructions
-                        # Set priority based on agent type
-                        priority = 1
+                        t = getattr(agent.config, 'agent_type', None)
+                        # Lower sort_key -> earlier addition -> potentially higher priority sequence
+                        if t == AgentType.KNOWLEDGE_FINDER:
+                            return 0
+                        if t == AgentType.PEOPLE_LOOKUP:
+                            return 1
+                        return 2
+                    return 3
+                ordered_agents = sorted(available_agents, key=sort_key)
+
+                for agent_name in ordered_agents:
+                    agent = agent_registry.get_agent(agent_name)
+                    priority = 1
+                    if agent and hasattr(agent, 'config'):
                         if agent.config.agent_type == AgentType.KNOWLEDGE_FINDER:
-                            priority = 3  # Higher priority for knowledge queries
+                            priority = 3
                         elif agent.config.agent_type == AgentType.PEOPLE_LOOKUP:
                             priority = 2
-                        
-                        await group_chat.add_participant(
-                            agent_name=agent_name,
-                            role=GroupChatRole.PARTICIPANT,
-                            priority=priority,
-                            max_consecutive_turns=2  # Limit consecutive turns to encourage rotation
-                        )
-                    else:
-                        # Fallback if agent doesn't have config
-                        await group_chat.add_participant(
-                            agent_name=agent_name,
-                            role=GroupChatRole.PARTICIPANT,
-                            priority=1
-                        )
+                    await group_chat.add_participant(
+                        agent_name=agent_name,
+                        role=GroupChatRole.PARTICIPANT,
+                        priority=priority,
+                        max_consecutive_turns=2
+                    )
+
+                if len(ordered_agents) < 2:
+                    logger.warning("Group chat created with fewer than 2 participants. Ensure PROJECT_ENDPOINT and agent IDs are set so specialized agents register.")
             
             GROUP_CHATS[session_id] = group_chat
         

@@ -46,6 +46,14 @@ class LangChainGenericAgent(BaseAgent):
         
         # Azure OpenAI configuration
         azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        # Expand literal placeholder form like ${AZURE_OPENAI_ENDPOINT}
+        if azure_endpoint and azure_endpoint.startswith("${") and azure_endpoint.endswith("}"):
+            var_name = azure_endpoint[2:-1]
+            expanded = os.getenv(var_name)
+            if expanded:
+                azure_endpoint = expanded
+            else:
+                self.logger.warning(f"Environment placeholder {azure_endpoint} not resolved; value empty.")
         api_key = os.getenv("AZURE_OPENAI_API_KEY")
         api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
         deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o-mini")
@@ -54,6 +62,14 @@ class LangChainGenericAgent(BaseAgent):
             raise AgentInitializationException("AZURE_OPENAI_ENDPOINT is required")
         if not api_key:
             raise AgentInitializationException("AZURE_OPENAI_API_KEY is required")
+        # Guard against non-HTTPS endpoints which will break bearer/token auth flows downstream
+        if not azure_endpoint.lower().startswith("https://"):
+            raise AgentInitializationException(
+                f"AZURE_OPENAI_ENDPOINT must start with https:// (got: {azure_endpoint}). "
+                "Bearer token or API key authentication is not permitted over plain HTTP."
+            )
+        if "${" in azure_endpoint:
+            self.logger.warning(f"AZURE_OPENAI_ENDPOINT appears to contain an unresolved placeholder: {azure_endpoint}")
         
         try:
             self.llm = AzureChatOpenAI(
@@ -133,6 +149,16 @@ class LangChainAzureFoundryAgent(BaseAgent):
         
         if not self.project_endpoint:
             self.project_endpoint = os.getenv("PROJECT_ENDPOINT")
+
+        # Expand placeholder patterns like ${PEOPLE_AGENT_ID}
+        if self.agent_id and self.agent_id.startswith("${") and self.agent_id.endswith("}"):
+            var_name = self.agent_id[2:-1]
+            expanded = os.getenv(var_name)
+            if expanded:
+                self.logger.info(f"Expanded agent_id placeholder {var_name} -> {expanded}")
+                self.agent_id = expanded
+            else:
+                self.logger.warning(f"Agent ID placeholder {self.agent_id} could not be resolved from environment.")
     
     async def initialize(self) -> None:
         """Initialize the Azure Foundry agent."""
@@ -143,6 +169,33 @@ class LangChainAzureFoundryAgent(BaseAgent):
         
         if not self.project_endpoint:
             raise AgentInitializationException("PROJECT_ENDPOINT required for Azure Foundry agents")
+        # Support unresolved literal placeholder patterns like ${PROJECT_ENDPOINT}
+        if self.project_endpoint.startswith("${") and self.project_endpoint.endswith("}"):
+            var_name = self.project_endpoint[2:-1]
+            expanded = os.getenv(var_name)
+            if expanded:
+                self.project_endpoint = expanded
+                self.logger.info(f"Expanded PROJECT_ENDPOINT placeholder {var_name} -> {self.project_endpoint}")
+            else:
+                self.logger.warning(f"PROJECT_ENDPOINT placeholder {self.project_endpoint} could not be resolved from environment.")
+        # Explicit HTTPS check – DefaultAzureCredential (bearer token) cannot be used with non-TLS endpoints
+        if not self.project_endpoint.lower().startswith("https://"):
+            raise AgentInitializationException(
+                f"PROJECT_ENDPOINT must start with https:// (got: {self.project_endpoint}). "
+                "Azure credentials refuse bearer token authentication for non-TLS URLs. If you are tunneling locally, use an HTTPS tunnel (e.g. 'https://<subdomain>.ngrok.io') instead of http://localhost."
+            )
+        if "${" in self.project_endpoint:
+            self.logger.warning(f"PROJECT_ENDPOINT appears to contain an unresolved placeholder: {self.project_endpoint}")
+
+        # Validate agent_id format (alphanumeric, underscore, dash)
+        if self.agent_id and not self.agent_id.replace('_','').replace('-','').isalnum():
+            raise AgentInitializationException(
+                f"Agent ID '{self.agent_id}' has invalid characters. Ensure environment variable contains only letters, numbers, underscores, or dashes."
+            )
+        if "${" in (self.agent_id or ""):
+            raise AgentInitializationException(
+                f"Agent ID contains unresolved placeholder: {self.agent_id}. Set PEOPLE_AGENT_ID / KNOWLEDGE_AGENT_ID properly."
+            )
         
         self.logger.info(f"Initialized Azure Foundry agent: {self.agent_id}")
     
