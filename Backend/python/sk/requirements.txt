@@ -1,62 +1,65 @@
 # Modern Semantic Kernel Agent System Dependencies
 
 # Core framework
-fastapi>=0.116.0
-uvicorn[standard]>=0.35.0
-pydantic>=2.11.0
-pydantic-settings>=2.10.0
-python-dotenv>=1.1.0
-starlette>=0.47.0
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-dotenv
+starlette
 
 # Semantic Kernel and AI services
-semantic-kernel>=1.36.0
+semantic-kernel
 
 # Azure services
-azure-ai-projects>=1.0.0b12
-azure-ai-inference>=1.0.0b9
-azure-identity>=1.25.0
-azure-core>=1.35.0
-azure-storage-blob>=12.26.0
+azure-ai-projects
+azure-ai-inference
+azure-identity
+azure-core
+azure-storage-blob
 
 # Google services (optional)
-google-generativeai>=0.8.5
-google-api-core>=2.25.0
-google-auth>=2.40.0
+google-generativeai
+google-api-core
+google-auth
 
 # AWS services (optional) 
-boto3>=1.40.0
-botocore>=1.40.0
+boto3
+botocore
 
 # OpenAI
-openai>=1.107.0
+openai
 
 # Async and utilities
-aiofiles>=24.1.0
-aioredis>=2.0.0  # Optional for Redis session storage
-httpx>=0.28.0
-httpcore>=1.0.0
-anyio>=4.10.0
-aiohttp>=3.12.0
+aiofiles
+aioredis  # Optional for Redis session storage
+httpx
+httpcore
+anyio
+aiohttp
 
 # Configuration and validation
-PyYAML>=6.0.0
-jsonschema>=4.25.0
+PyYAML
+jsonschema
+typing-extensions  # From shared
+
+# Session storage (optional)
+redis  # For Redis session storage
+sqlalchemy  # For database session storage
 
 # Shared dependencies
 # Note: Shared module is imported via sys.path modification in the code
 # No need for separate installation
 
 # Development (optional)
-pytest>=8.4.0
-pytest-asyncio>=1.2.0
-black>=25.1.0
-isort>=6.0.0
-mypy>=1.18.0
-
-# Optional session storage backends
-redis>=6.4.0  # For Redis session storage
-sqlalchemy>=2.0.0  # For database session storage
+pytest
+pytest-asyncio
+pytest-cov
+black
+isort
+mypy
+pre-commit
 
 # Additional dependencies
-numpy>=2.3.0  # Required by some AI models
-cryptography>=45.0.0  # For secure operations
+numpy  # Required by some AI models
+cryptography  # For secure operations
