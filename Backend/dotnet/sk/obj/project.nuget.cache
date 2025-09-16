@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "xCi3iGfR23M=",
+  "dgSpecHash": "KCvf4WewpNE=",
   "success": true,
-  "projectFilePath": "C:\\repo\\nhcloud\\agents-workshop\\backend\\dotnet\\semantic_kernel\\DotNetSemanticKernel.csproj",
+  "projectFilePath": "C:\\repo\\nhcloud\\agents-workshop\\Backend\\dotnet\\sk\\DotNetSemanticKernel.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\udai\\.nuget\\packages\\azure.ai.inference\\1.0.0-beta.2\\azure.ai.inference.1.0.0-beta.2.nupkg.sha512",
     "C:\\Users\\udai\\.nuget\\packages\\azure.ai.openai\\2.1.0-beta.2\\azure.ai.openai.2.1.0-beta.2.nupkg.sha512",
