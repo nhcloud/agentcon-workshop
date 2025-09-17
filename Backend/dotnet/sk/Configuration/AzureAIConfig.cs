@@ -3,21 +3,20 @@ namespace DotNetSemanticKernel.Configuration;
 public class AzureAIConfig
 {
     public AzureOpenAIConfig? AzureOpenAI { get; set; }
-    public AzureAIInferenceConfig? AzureAIInference { get; set; }
+    public AzureAIFoundryConfig? AzureAIFoundry { get; set; }
 }
 
 public class AzureOpenAIConfig
 {
     public string? Endpoint { get; set; }
     public string? ApiKey { get; set; }
-    public string? ChatDeployment { get; set; }
-    public string? EmbeddingDeployment { get; set; }
+    public string? DeploymentName { get; set; }
     public string? ApiVersion { get; set; }
 }
 
-public class AzureAIInferenceConfig
+public class AzureAIFoundryConfig
 {
-    public string? Endpoint { get; set; }
-    public string? ApiKey { get; set; }
-    public string? ModelName { get; set; }
+    public string? ProjectEndpoint { get; set; }
+    public string? PeopleAgentId { get; set; }
+    public string? KnowledgeAgentId { get; set; }
 }
