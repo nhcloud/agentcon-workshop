@@ -11,26 +11,15 @@ app:
 # Azure OpenAI configuration (for Semantic Kernel)
 azure_openai:
   endpoint: "${AZURE_OPENAI_ENDPOINT}"
-  deployment: "${AZURE_OPENAI_DEPLOYMENT}"
-  api_key: "${AZURE_OPENAI_KEY}"
+  deployment: "${AZURE_OPENAI_DEPLOYMENT_NAME}"
+  api_key: "${AZURE_OPENAI_API_KEY}"
+  api_version: "${AZURE_OPENAI_API_VERSION:2024-02-01}"
 
 # Azure AI Foundry project configuration
 azure_foundry:
   project_endpoint: "${PROJECT_ENDPOINT}"
   people_agent_id: "${PEOPLE_AGENT_ID}"
   knowledge_agent_id: "${KNOWLEDGE_AGENT_ID}"
-
-# Google Gemini configuration
-google:
-  api_key: "${GOOGLE_API_KEY}"
-  model_id: "${GEMINI_MODEL_ID:gemini-2.0-flash}"
-
-# AWS Bedrock configuration
-aws:
-  region: "${AWS_DEFAULT_REGION:us-east-1}"
-  bedrock_agent_id: "${AWS_BEDROCK_AGENT_ID}"
-  foundation_model: "${AWS_BEDROCK_FOUNDATION_MODEL}"
-  agent_role_arn: "${AWS_BEDROCK_AGENT_ROLE_ARN}"
 
 # Session management
 sessions:
@@ -106,42 +95,6 @@ agents:
       agent_id: "${KNOWLEDGE_AGENT_ID}"
       project_endpoint: "${PROJECT_ENDPOINT}"
 
-  gemini_agent:
-    type: "custom"
-    enabled: false  # Disabled by default - enable via environment or config
-    instructions: |
-      You are a creative AI assistant powered by Google Gemini and Semantic Kernel. You excel at:
-      - Creative writing and storytelling
-      - Brainstorming and ideation
-      - Artistic and design assistance
-      - Multi-modal understanding
-      
-      Bring creativity and innovation to every interaction while maintaining helpfulness and accuracy.
-    metadata:
-      description: "Creative assistant powered by Google Gemini"
-      capabilities: ["creative_writing", "brainstorming", "design_assistance", "multi_modal"]
-    framework_config:
-      provider: "gemini"
-
-  bedrock_agent:
-    type: "custom"
-    enabled: false  # Disabled by default - enable via environment or config
-    instructions: |
-      You are an enterprise-focused AI assistant powered by AWS Bedrock and Semantic Kernel. You specialize in:
-      - Business analysis and insights
-      - Strategic planning assistance
-      - Data analysis and reporting
-      - Enterprise workflow optimization
-      
-      Provide professional, enterprise-grade responses with focus on business value and ROI.
-    metadata:
-      description: "Enterprise assistant powered by AWS Bedrock"
-      capabilities: ["business_analysis", "strategic_planning", "data_analysis", "enterprise_workflows"]
-    framework_config:
-      provider: "bedrock"
-      agent_id: "${AWS_BEDROCK_AGENT_ID}"
-      region: "${AWS_DEFAULT_REGION:us-east-1}"
-
 # Router configuration
 router:
   type: "hybrid_sk"  # pattern, llm, hybrid, hybrid_sk
@@ -162,16 +115,6 @@ router:
       - "\\b(setup|configuration|install|deploy|implementation)\\b"
       - "\\b(akumina|platform|technical|api|integration)\\b"
       - "\\b(manual|tutorial|instruction|walkthrough)\\b"
-    
-    gemini_agent:
-      - "\\b(creative|story|poem|art|design|imagine)\\b"
-      - "\\b(brainstorm|ideate|innovative|artistic)\\b"
-      - "\\b(write|compose|create|generate)\\b.*\\b(story|poem|content)\\b"
-    
-    bedrock_agent:
-      - "\\b(analyze|analysis|business|enterprise|metrics|kpi)\\b"
-      - "\\b(strategy|planning|forecast|budget|roi|revenue)\\b"
-      - "\\b(dashboard|report|analytics|insights)\\b"
 
   # Semantic Kernel routing configuration
   sk_routing:
@@ -194,14 +137,6 @@ providers:
   azure_foundry:
     enabled: true
     priority: 2
-  
-  google_gemini:
-    enabled: "${GOOGLE_API_KEY:false}"
-    priority: 3
-  
-  aws_bedrock:
-    enabled: "${AWS_BEDROCK_AGENT_ID:false}"
-    priority: 4
 
 # Security (future enhancement)
 security:
