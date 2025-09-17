@@ -40,12 +40,25 @@ builder.Services.AddScoped<IKernelBuilder>(provider =>
     var config = builder.Configuration.GetSection("AzureAI").Get<AzureAIConfig>();
     var kernelBuilder = Kernel.CreateBuilder();
     
+    // Try Azure OpenAI first
     if (!string.IsNullOrEmpty(config?.AzureOpenAI?.Endpoint) && !string.IsNullOrEmpty(config.AzureOpenAI.ApiKey))
     {
         kernelBuilder.AddAzureOpenAIChatCompletion(
             deploymentName: config.AzureOpenAI.ChatDeployment ?? "gpt-4o",
             endpoint: config.AzureOpenAI.Endpoint,
             apiKey: config.AzureOpenAI.ApiKey);
+    }
+    // Fallback to Azure AI Inference (GitHub Models)
+    else if (!string.IsNullOrEmpty(config?.AzureAIInference?.Endpoint) && !string.IsNullOrEmpty(config.AzureAIInference.ApiKey))
+    {
+        kernelBuilder.AddAzureOpenAIChatCompletion(
+            deploymentName: config.AzureAIInference.ModelName ?? "gpt-4o",
+            endpoint: config.AzureAIInference.Endpoint,
+            apiKey: config.AzureAIInference.ApiKey);
+    }
+    else
+    {
+        throw new InvalidOperationException("No valid AI service configuration found. Please configure either AzureOpenAI or AzureAIInference in appsettings.json");
     }
     
     return kernelBuilder;

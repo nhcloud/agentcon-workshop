@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\repo\\nhcloud\\agents-workshop\\Backend\\dotnet\\sk\\DotNetSemanticKernel.csproj": {}
+    "C:\\repo\\nhcloud\\agentcon-workshop\\Backend\\dotnet\\sk\\DotNetSemanticKernel.csproj": {}
   },
   "projects": {
-    "C:\\repo\\nhcloud\\agents-workshop\\Backend\\dotnet\\sk\\DotNetSemanticKernel.csproj": {
+    "C:\\repo\\nhcloud\\agentcon-workshop\\Backend\\dotnet\\sk\\DotNetSemanticKernel.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\repo\\nhcloud\\agents-workshop\\Backend\\dotnet\\sk\\DotNetSemanticKernel.csproj",
+        "projectUniqueName": "C:\\repo\\nhcloud\\agentcon-workshop\\Backend\\dotnet\\sk\\DotNetSemanticKernel.csproj",
         "projectName": "DotNetSemanticKernel",
-        "projectPath": "C:\\repo\\nhcloud\\agents-workshop\\Backend\\dotnet\\sk\\DotNetSemanticKernel.csproj",
+        "projectPath": "C:\\repo\\nhcloud\\agentcon-workshop\\Backend\\dotnet\\sk\\DotNetSemanticKernel.csproj",
         "packagesPath": "C:\\Users\\udai\\.nuget\\packages\\",
-        "outputPath": "C:\\repo\\nhcloud\\agents-workshop\\Backend\\dotnet\\sk\\obj\\",
+        "outputPath": "C:\\repo\\nhcloud\\agentcon-workshop\\Backend\\dotnet\\sk\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -51,41 +51,113 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "dependencies": {
-            "Azure.AI.Inference": {
+            "Azure.AI.Projects": {
               "target": "Package",
-              "version": "[1.0.0-beta.2, )"
+              "version": "[1.0.0-beta.11, )"
+            },
+            "Azure.Identity": {
+              "target": "Package",
+              "version": "[1.15.0, )"
+            },
+            "Azure.Search.Documents": {
+              "target": "Package",
+              "version": "[11.6.1, )"
+            },
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
+              "target": "Package",
+              "version": "[9.0.8, )"
+            },
+            "Microsoft.AspNetCore.Http.Abstractions": {
+              "target": "Package",
+              "version": "[2.2.0, )"
             },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
-              "version": "[9.0.0, )"
+              "version": "[9.0.8, )"
             },
-            "Microsoft.Extensions.Configuration.Json": {
+            "Microsoft.Azure.Cosmos": {
               "target": "Package",
-              "version": "[9.0.0, )"
+              "version": "[3.53.1, )"
+            },
+            "Microsoft.Extensions.Configuration": {
+              "target": "Package",
+              "version": "[9.0.8, )"
+            },
+            "Microsoft.Extensions.Configuration.Binder": {
+              "target": "Package",
+              "version": "[9.0.8, )"
+            },
+            "Microsoft.Extensions.DependencyInjection": {
+              "target": "Package",
+              "version": "[9.0.8, )"
+            },
+            "Microsoft.Extensions.Http": {
+              "target": "Package",
+              "version": "[9.0.8, )"
             },
             "Microsoft.Extensions.Logging": {
               "target": "Package",
-              "version": "[9.0.0, )"
+              "version": "[9.0.8, )"
+            },
+            "Microsoft.Extensions.Options": {
+              "target": "Package",
+              "version": "[9.0.8, )"
+            },
+            "Microsoft.Extensions.Options.ConfigurationExtensions": {
+              "target": "Package",
+              "version": "[9.0.8, )"
+            },
+            "Microsoft.IdentityModel.Tokens": {
+              "target": "Package",
+              "version": "[8.3.0, )"
             },
             "Microsoft.SemanticKernel": {
               "target": "Package",
-              "version": "[1.30.0, )"
+              "version": "[1.64.0, )"
             },
-            "Microsoft.SemanticKernel.Agents.OpenAI": {
+            "Microsoft.SemanticKernel.Abstractions": {
               "target": "Package",
-              "version": "[1.30.0-alpha, )"
+              "version": "[1.64.0, )"
+            },
+            "Microsoft.SemanticKernel.Agents.Abstractions": {
+              "target": "Package",
+              "version": "[1.64.0, )"
+            },
+            "Microsoft.SemanticKernel.Agents.AzureAI": {
+              "target": "Package",
+              "version": "[1.64.0-preview, )"
+            },
+            "Microsoft.SemanticKernel.Agents.Core": {
+              "target": "Package",
+              "version": "[1.64.0, )"
             },
             "Microsoft.SemanticKernel.Connectors.AzureOpenAI": {
               "target": "Package",
-              "version": "[1.30.0, )"
+              "version": "[1.64.0, )"
+            },
+            "Microsoft.SemanticKernel.Connectors.OpenAI": {
+              "target": "Package",
+              "version": "[1.64.0, )"
+            },
+            "Microsoft.SemanticKernel.Core": {
+              "target": "Package",
+              "version": "[1.64.0, )"
+            },
+            "Newtonsoft.Json": {
+              "target": "Package",
+              "version": "[13.0.3, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
-              "version": "[7.1.0, )"
+              "version": "[6.5.0, )"
             },
-            "System.Text.Json": {
+            "System.IdentityModel.Tokens.Jwt": {
               "target": "Package",
-              "version": "[9.0.0, )"
+              "version": "[8.3.0, )"
+            },
+            "System.Security.Claims": {
+              "target": "Package",
+              "version": "[4.3.0, )"
             }
           },
           "imports": [
