@@ -1,4 +1,4 @@
-# Azure Multi-Agent Workshop
+# Azure Multi-Agent Workshop 
 
 A comprehensive workshop for building sophisticated AI agent applications using Azure OpenAI services with multiple implementation options. Learn to create chatbot applications with specialized agent routing, group chat capabilities, and modern React frontends. The workshop provides both Python (Semantic Kernel & LangChain) and .NET implementations to demonstrate multi-agent architectures.
 
