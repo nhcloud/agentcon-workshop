@@ -292,26 +292,19 @@ class SemanticKernelAgentGroupChat:
                     thread = ChatHistoryAgentThread(chat_history=self.chat_history)
                     
                     # Get agent response using the correct invoke method
-                    agent_responses = []
-                    async for response in participant.agent.invoke(
+                    response_item = await participant.agent.get_response(
                         messages=current_message,
                         thread=thread
-                    ):
-                        agent_responses.append(response)
+                    )
                     
-                    # Update chat history from the thread
-                    self.chat_history = thread.chat_history
+                    # Update chat history from the response thread
+                    self.chat_history = response_item.thread.chat_history if hasattr(response_item.thread, 'chat_history') else self.chat_history
                     
-                    # Extract response content from the agent responses
-                    if agent_responses and len(agent_responses) > 0:
-                        # Get the last response content
-                        last_response = agent_responses[-1]
-                        if hasattr(last_response, 'content'):
-                            response_content = last_response.content
-                        elif hasattr(last_response, 'message') and hasattr(last_response.message, 'content'):
-                            response_content = last_response.message.content
-                        else:
-                            response_content = str(last_response)
+                    # Extract response content from the agent response
+                    if response_item and hasattr(response_item, 'message') and hasattr(response_item.message, 'content'):
+                        response_content = response_item.message.content
+                    elif response_item and hasattr(response_item, 'content'):
+                        response_content = response_item.content
                     else:
                         response_content = "I don't have a response at this time."
                     
@@ -414,22 +407,16 @@ class SemanticKernelAgentGroupChat:
                 thread = ChatHistoryAgentThread(chat_history=self.chat_history)
                 
                 # Get agent response
-                agent_responses = []
-                async for response in participant.agent.invoke(
+                response_item = await participant.agent.get_response(
                     messages=message,
                     thread=thread
-                ):
-                    agent_responses.append(response)
+                )
                 
                 # Extract response content
-                if agent_responses and len(agent_responses) > 0:
-                    last_response = agent_responses[-1]
-                    if hasattr(last_response, 'content'):
-                        response_content = last_response.content
-                    elif hasattr(last_response, 'message') and hasattr(last_response.message, 'content'):
-                        response_content = last_response.message.content
-                    else:
-                        response_content = str(last_response)
+                if response_item and hasattr(response_item, 'message') and hasattr(response_item.message, 'content'):
+                    response_content = response_item.message.content
+                elif response_item and hasattr(response_item, 'content'):
+                    response_content = response_item.content
                 else:
                     response_content = "I don't have a response at this time."
                 
