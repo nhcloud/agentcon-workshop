@@ -33,14 +33,11 @@ public class AgentService : IAgentService
         _logger = logger;
         _azureConfig = azureConfig.Value;
         
-        // Initialize agent factories with async initialization
+        // Initialize agent factories with async initialization - only the three required agents
         _agentFactories = new Dictionary<string, Func<Task<IAgent>>>
         {
             ["people_lookup"] = async () => await CreateBasicAgentAsync<PeopleLookupAgent>(),
             ["knowledge_finder"] = async () => await CreateBasicAgentAsync<KnowledgeFinderAgent>(),
-            ["task_assistant"] = async () => await CreateBasicAgentAsync<TaskAssistantAgent>(),
-            ["technical_advisor"] = async () => await CreateBasicAgentAsync<TechnicalAdvisorAgent>(),
-            ["creative_assistant"] = async () => await CreateBasicAgentAsync<CreativeAssistantAgent>(),
             ["generic"] = async () => await CreateBasicAgentAsync<GenericAgent>()
         };
     }
@@ -110,53 +107,137 @@ public class AgentService : IAgentService
     {
         var agents = new List<AgentInfo>();
 
-        // Add basic agents
-        foreach (var (name, factory) in _agentFactories)
+        // Check if Azure AI Foundry is configured
+        var hasFoundryConfig = _azureConfig?.AzureAIFoundry != null && 
+                              !string.IsNullOrEmpty(_azureConfig.AzureAIFoundry.ProjectEndpoint);
+
+        // Always add the generic agent (Azure OpenAI)
+        try
         {
-            try
+            var genericAgent = await _agentFactories["generic"]();
+            agents.Add(new AgentInfo
             {
-                var agent = await factory();
-                agents.Add(new AgentInfo
-                {
-                    Name = agent.Name,
-                    Description = agent.Description,
-                    Instructions = agent.Instructions,
-                    Model = "Azure OpenAI - GPT-4o",
-                    AgentType = "Standard"
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to create agent info for {AgentName}", name);
-            }
+                Name = genericAgent.Name,
+                Description = genericAgent.Description,
+                Instructions = genericAgent.Instructions,
+                Model = "Azure OpenAI - GPT-4o",
+                AgentType = "Standard"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create generic agent info");
         }
 
-        // Add Azure AI Foundry agents if configured
-        if (_azureConfig?.AzureAIFoundry != null && 
-            !string.IsNullOrEmpty(_azureConfig.AzureAIFoundry.ProjectEndpoint))
+        // Add people_lookup agent (Foundry if configured, otherwise standard)
+        if (hasFoundryConfig && _azureConfig?.AzureAIFoundry != null)
         {
-            if (!string.IsNullOrEmpty(_azureConfig.AzureAIFoundry.PeopleAgentId))
+            var foundryConfig = _azureConfig.AzureAIFoundry;
+            if (!string.IsNullOrEmpty(foundryConfig.PeopleAgentId))
             {
                 agents.Add(new AgentInfo
                 {
-                    Name = "foundry_people_lookup",
+                    Name = "people_lookup",
                     Description = "Azure AI Foundry People Lookup Agent with enterprise directory access",
                     Instructions = "Enterprise-grade people lookup with Azure AI Foundry",
                     Model = "Azure AI Foundry",
                     AgentType = "Azure AI Foundry"
                 });
             }
+            else
+            {
+                // Foundry configured but no people agent ID, use standard
+                try
+                {
+                    var peopleAgent = await _agentFactories["people_lookup"]();
+                    agents.Add(new AgentInfo
+                    {
+                        Name = peopleAgent.Name,
+                        Description = peopleAgent.Description,
+                        Instructions = peopleAgent.Instructions,
+                        Model = "Azure OpenAI - GPT-4o",
+                        AgentType = "Standard"
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to create people_lookup agent info");
+                }
+            }
+        }
+        else
+        {
+            try
+            {
+                var peopleAgent = await _agentFactories["people_lookup"]();
+                agents.Add(new AgentInfo
+                {
+                    Name = peopleAgent.Name,
+                    Description = peopleAgent.Description,
+                    Instructions = peopleAgent.Instructions,
+                    Model = "Azure OpenAI - GPT-4o",
+                    AgentType = "Standard"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create people_lookup agent info");
+            }
+        }
 
-            if (!string.IsNullOrEmpty(_azureConfig.AzureAIFoundry.KnowledgeAgentId))
+        // Add knowledge_finder agent (Foundry if configured, otherwise standard)
+        if (hasFoundryConfig && _azureConfig?.AzureAIFoundry != null)
+        {
+            var foundryConfig = _azureConfig.AzureAIFoundry;
+            if (!string.IsNullOrEmpty(foundryConfig.KnowledgeAgentId))
             {
                 agents.Add(new AgentInfo
                 {
-                    Name = "foundry_knowledge_finder",
+                    Name = "knowledge_finder",
                     Description = "Azure AI Foundry Knowledge Finder Agent with enterprise knowledge access",
                     Instructions = "Enterprise-grade knowledge search with Azure AI Foundry",
-                    Model = "Azure AI Foundry", 
+                    Model = "Azure AI Foundry",
                     AgentType = "Azure AI Foundry"
                 });
+            }
+            else
+            {
+                // Foundry configured but no knowledge agent ID, use standard
+                try
+                {
+                    var knowledgeAgent = await _agentFactories["knowledge_finder"]();
+                    agents.Add(new AgentInfo
+                    {
+                        Name = knowledgeAgent.Name,
+                        Description = knowledgeAgent.Description,
+                        Instructions = knowledgeAgent.Instructions,
+                        Model = "Azure OpenAI - GPT-4o",
+                        AgentType = "Standard"
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to create knowledge_finder agent info");
+                }
+            }
+        }
+        else
+        {
+            try
+            {
+                var knowledgeAgent = await _agentFactories["knowledge_finder"]();
+                agents.Add(new AgentInfo
+                {
+                    Name = knowledgeAgent.Name,
+                    Description = knowledgeAgent.Description,
+                    Instructions = knowledgeAgent.Instructions,
+                    Model = "Azure OpenAI - GPT-4o",
+                    AgentType = "Standard"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create knowledge_finder agent info");
             }
         }
 
