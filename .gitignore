@@ -207,8 +207,11 @@ Backend/dotnet/**/*.DotSettings.user
 Backend/dotnet/sk/obj/DotNetSemanticKernel.csproj.nuget.dgspec.json
 Backend/dotnet/sk/obj/project.assets.json
 Backend/dotnet/sk/obj/project.nuget.cache
+Backend/dotnet/sk/bin/
 Backend/dotnet/sk/obj/Debug/
 
 # Agent session data
 Backend/python/sk/sessions/
 Backend/python/langchain/sessions/
+Backend/dotnet/sk/obj/Debug/net9.0/DotNetSemanticKernel.AssemblyInfo.cs
+Backend/dotnet/sk/obj/Debug/net9.0/DotNetSemanticKernel.AssemblyInfoInputs.cache

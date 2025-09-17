@@ -1,0 +1,478 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+venv/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# dotenv
+.env
+.env.*
+
+# mypy
+.mypy_cache/
+.dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# VS Code
+.vscode/
+
+# React/Node
+node_modules/
+frontend/build/
+frontend/.env
+
+# Logs
+*.log
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Local backups
+*~
+*.swp
+*.swo
+
+# Ignore backend requirements if generated
+#backend/requirements.txt 
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.env
+venv/
+ENV/
+
+# Node/React
+frontend/node_modules/
+frontend/.pnp
+frontend/.pnp.js
+frontend/coverage/
+frontend/build/
+frontend/.DS_Store
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+*.sublime-workspace
+*.sublime-project
+
+# Azure specific
+.azure/
+*.publishsettings
+*.pubxml
+*.azurePubxml
+
+# Logs
+*.log
+logs/
+log/
+
+# Local development
+.localdev/
+*.local
+
+# Testing
+.coverage
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+test-reports/
+
+# Misc
+*.bak
+*.tmp
+*.temp
+.cache/ 
+
+# ============================================================================
+# .NET CORE / .NET 9 BUILD ARTIFACTS
+# ============================================================================
+# Build results
+Backend/dotnet/**/[Bb]in/
+Backend/dotnet/**/[Oo]bj/
+Backend/dotnet/**/[Dd]ebug/
+Backend/dotnet/**/[Rr]elease/
+Backend/dotnet/**/[Bb]uild/
+Backend/dotnet/**/x64/
+Backend/dotnet/**/x86/
+
+# MSBuild Binary and Structured Log
+Backend/dotnet/**/*.binlog
+
+# NuGet
+Backend/dotnet/**/packages/
+Backend/dotnet/**/packages.lock.json
+Backend/dotnet/**/*.nupkg
+Backend/dotnet/**/*.snupkg
+Backend/dotnet/**/nuget.exe
+Backend/dotnet/**/.nuget/
+
+# User-specific files
+Backend/dotnet/**/*.rsuser
+Backend/dotnet/**/*.suo
+Backend/dotnet/**/*.user
+Backend/dotnet/**/*.userosscache
+Backend/dotnet/**/*.sln.docstates
+
+# Visual Studio cache/options directory
+Backend/dotnet/**/.vs/
+
+# Uncomment if you have tasks that create the project's static files in wwwroot
+#Backend/dotnet/**/wwwroot/
+
+# MSTest test Results
+Backend/dotnet/**/[Tt]est[Rr]esult*/
+Backend/dotnet/**/[Bb]uild[Ll]og.*
+
+# NUnit
+Backend/dotnet/**/*.VisualState.xml
+Backend/dotnet/**/TestResult.xml
+Backend/dotnet/**/nunit-*.xml
+
+# NUNIT
+Backend/dotnet/**/*.VisualState.xml
+Backend/dotnet/**/TestResult.xml
+
+# xUnit
+Backend/dotnet/**/*.xunit
+
+# Coverlet is a free, cross platform Code Coverage Tool
+Backend/dotnet/**/coverage*.json
+Backend/dotnet/**/coverage*.xml
+Backend/dotnet/**/coverage*.info
+
+# Visual Studio code coverage results
+Backend/dotnet/**/*.coverage
+Backend/dotnet/**/*.coveragexml
+
+# NCrunch
+Backend/dotnet/**/_NCrunch_*
+Backend/dotnet/**/.*crunch*.local.xml
+Backend/dotnet/**/nCrunchTemp_*
+
+# MightyMoose
+Backend/dotnet/**/*.mm.*
+Backend/dotnet/**/AutoTest.Net/
+
+# Web workbench (sass)
+Backend/dotnet/**/.sass-cache/
+
+# Installshield output folder
+Backend/dotnet/**/[Ee]xpress/
+
+# DocProject is a documentation generator add-in
+Backend/dotnet/**/DocProject/buildhelp/
+Backend/dotnet/**/DocProject/Help/*.HxT
+Backend/dotnet/**/DocProject/Help/*.HxC
+Backend/dotnet/**/DocProject/Help/*.hhc
+Backend/dotnet/**/DocProject/Help/*.hhk
+Backend/dotnet/**/DocProject/Help/*.hhp
+Backend/dotnet/**/DocProject/Help/Html2
+Backend/dotnet/**/DocProject/Help/html
+
+# Click-Once directory
+Backend/dotnet/**/publish/
+
+# Publish Web Output
+Backend/dotnet/**/*.[Pp]ublish.xml
+Backend/dotnet/**/*.azurePubxml
+Backend/dotnet/**/*.pubxml
+Backend/dotnet/**/*.publishproj
+
+# Microsoft Azure Web App publish settings. Comment the next line if you want to
+# checkin your Azure Web App publish settings, but sensitive information contained
+# in these scripts will be encrypted
+Backend/dotnet/**/PublishScripts/
+
+# NuGet Packages
+Backend/dotnet/**/*.nupkg
+Backend/dotnet/**/*.snupkg
+# NuGet Symbol Packages
+Backend/dotnet/**/*.snupkg
+# The packages folder can be ignored because of Package Restore
+Backend/dotnet/**/[Pp]ackages/
+# except build/, which is used as an MSBuild target.
+!Backend/dotnet/**/[Pp]ackages/build/
+# Uncomment if necessary however generally it will be regenerated when needed
+#!**/[Pp]ackages/repositories.config
+# NuGet v3's project.json files produces more ignorable files
+Backend/dotnet/**/*.nuget.props
+Backend/dotnet/**/*.nuget.targets
+
+# Microsoft Azure Build Output
+Backend/dotnet/**/csx/
+Backend/dotnet/**/*.build.csdef
+
+# Microsoft Azure Emulator
+Backend/dotnet/**/ecf/
+Backend/dotnet/**/rcf/
+
+# Windows Store app package directories and files
+Backend/dotnet/**/AppPackages/
+Backend/dotnet/**/BundleArtifacts/
+Backend/dotnet/**/Package.StoreAssociation.xml
+Backend/dotnet/**/_pkginfo.txt
+Backend/dotnet/**/*.appx
+Backend/dotnet/**/*.appxbundle
+Backend/dotnet/**/*.appxupload
+
+# Visual Studio cache files
+Backend/dotnet/**/ipch/
+Backend/dotnet/**/*.aps
+Backend/dotnet/**/*.ncb
+Backend/dotnet/**/*.opendb
+Backend/dotnet/**/*.opensdf
+Backend/dotnet/**/*.sdf
+Backend/dotnet/**/*.cachefile
+Backend/dotnet/**/*.VC.db
+Backend/dotnet/**/*.VC.VC.opendb
+
+# Visual Studio profiler
+Backend/dotnet/**/*.psess
+Backend/dotnet/**/*.vsp
+Backend/dotnet/**/*.vspx
+Backend/dotnet/**/*.sap
+
+# Visual Studio Trace Files
+Backend/dotnet/**/*.e2e
+
+# TFS 2012 Local Workspace
+Backend/dotnet/**/$tf/
+
+# Guidance Automation Toolkit
+Backend/dotnet/**/*.gpState
+
+# ReSharper is a .NET coding add-in
+Backend/dotnet/**/_ReSharper*/
+Backend/dotnet/**/*.[Rr]e[Ss]harper
+Backend/dotnet/**/*.DotSettings.user
+
+# JustCode is a .NET coding add-in
+Backend/dotnet/**/.JustCode
+
+# TeamCity is a build add-in
+Backend/dotnet/**/_TeamCity*
+
+# DotCover is a Code Coverage Tool
+Backend/dotnet/**/*.dotCover
+
+# AxoCover is a Code Coverage Tool
+Backend/dotnet/**/.axoCover/*
+Backend/dotnet/**/coverage.json
+Backend/dotnet/**/coverage.xml
+Backend/dotnet/**/coverage.info
+
+# Coverlet is a free, cross platform Code Coverage Tool
+Backend/dotnet/**/coverage*.json
+Backend/dotnet/**/coverage*.xml
+Backend/dotnet/**/coverage*.info
+
+# Visual Studio code coverage results
+Backend/dotnet/**/*.coverage
+Backend/dotnet/**/*.coveragexml
+
+# NCrunch
+Backend/dotnet/**/_NCrunch_*
+Backend/dotnet/**/.*crunch*.local.xml
+Backend/dotnet/**/nCrunchTemp_*
+
+# MightyMoose
+Backend/dotnet/**/*.mm.*
+Backend/dotnet/**/AutoTest.Net/
+
+# Web workbench (sass)
+Backend/dotnet/**/.sass-cache/
+
+# Installshield output folder
+Backend/dotnet/**/[Ee]xpress/
+
+# DocProject is a documentation generator add-in
+Backend/dotnet/**/DocProject/buildhelp/
+Backend/dotnet/**/DocProject/Help/*.HxT
+Backend/dotnet/**/DocProject/Help/*.HxC
+Backend/dotnet/**/DocProject/Help/*.hhc
+Backend/dotnet/**/DocProject/Help/*.hhk
+Backend/dotnet/**/DocProject/Help/*.hhp
+Backend/dotnet/**/DocProject/Help/Html2
+Backend/dotnet/**/DocProject/Help/html
+
+# Click-Once directory
+Backend/dotnet/**/publish/
+
+# Publish Web Output
+Backend/dotnet/**/*.[Pp]ublish.xml
+Backend/dotnet/**/*.azurePubxml
+Backend/dotnet/**/*.pubxml
+Backend/dotnet/**/*.publishproj
+
+# Windows Azure Build Output
+Backend/dotnet/**/csx/
+Backend/dotnet/**/*.build.csdef
+
+# Windows Store app package directory
+Backend/dotnet/**/AppPackages/
+
+# Visual Studio cache files
+Backend/dotnet/**/ipch/
+Backend/dotnet/**/*.aps
+Backend/dotnet/**/*.ncb
+Backend/dotnet/**/*.opensdf
+Backend/dotnet/**/*.sdf
+Backend/dotnet/**/*.cachefile
+
+# Others
+Backend/dotnet/**/ClientBin/
+Backend/dotnet/**~$*
+Backend/dotnet/**/*~
+Backend/dotnet/**/*.dbmdl
+Backend/dotnet/**/*.dbproj.schemaview
+Backend/dotnet/**/*.publishsettings
+Backend/dotnet/**/node_modules/
+
+# RIA/Silverlight projects
+Backend/dotnet/**/Generated_Code/
+
+# Backup & report files from converting an old project file to a newer
+Backend/dotnet/**/[Bb]ackup*/
+Backend/dotnet/**/UpgradeLog*.XML
+Backend/dotnet/**/UpgradeLog*.htm
+
+# SQL Server files
+Backend/dotnet/**/*.mdf
+Backend/dotnet/**/*.ldf
+
+# Business Intelligence projects
+Backend/dotnet/**/*.rdl.data
+Backend/dotnet/**/*.bim.layout
+Backend/dotnet/**/*.bim_*.settings
+
+# Microsoft Fakes
+Backend/dotnet/**/FakesAssemblies/
+
+# GhostDoc plugin setting file
+Backend/dotnet/**/*.GhostDoc.xml
+
+# Node.js Tools for Visual Studio
+Backend/dotnet/**/.ntvs_analysis.dat
+
+# Typescript v1 declaration files
+Backend/dotnet/**/typings/
+
+# Visual Studio 6 build log
+Backend/dotnet/**/*.plg
+
+# Visual Studio 6 workspace options file
+Backend/dotnet/**/*.opt
+
+# Visual Studio LightSwitch build output
+Backend/dotnet/**/**/*.HTMLClient/GeneratedArtifacts
+Backend/dotnet/**/**/*.DesktopClient/GeneratedArtifacts
+Backend/dotnet/**/**/*.DesktopClient/ModelManifest.xml
+Backend/dotnet/**/**/*.Server/GeneratedArtifacts
+Backend/dotnet/**/**/*.Server/ModelManifest.xml
+Backend/dotnet/**/_Pvt_Extensions
+
+# LightSwitch generated files
+Backend/dotnet/**/GeneratedArtifacts/
+Backend/dotnet/**/ModelManifest.xml
+Backend/dotnet/**/_Pvt_Extensions/
+
+# Paket dependency manager
+Backend/dotnet/**/.paket/paket.exe
+
+# FAKE - F# Make
+Backend/dotnet/**/.fake/
+
+# JetBrains Rider
+Backend/dotnet/**/.idea/
+Backend/dotnet/**/*.sln.iml
+
+# CodeRush
+Backend/dotnet/**/.cr/
+
+# Python Tools for Visual Studio (PTVS)
+Backend/dotnet/**/__pycache__/
+Backend/dotnet/**/*.pyc
+
+# Cake - Uncomment if you are using it
+Backend/dotnet/**/tools/
+
+# Agent session data
+Backend/python/sk/sessions/
+Backend/python/langchain/sessions/
