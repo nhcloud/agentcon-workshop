@@ -5,7 +5,7 @@ A comprehensive workshop for building sophisticated AI agent applications using 
 ## Workshop Features 
 
 - 🤖 **Multiple Implementation Options**:
-  - Python Semantic Kernel implementation
+  - Python Semantic Kernel implementation  
   - Python LangChain implementation  
   - .NET Semantic Kernel implementation
 - 🔄 **Multi-Agent Architecture**: Agent routing and group chat scenarios
