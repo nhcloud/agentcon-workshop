@@ -140,6 +140,16 @@ class SemanticKernelAzureFoundryAgent(BaseAgent):
         
         if not self.project_endpoint:
             self.project_endpoint = os.getenv("PROJECT_ENDPOINT")
+
+        # Expand placeholder patterns like ${PEOPLE_AGENT_ID}
+        if self.agent_id and self.agent_id.startswith("${") and self.agent_id.endswith("}"):
+            var_name = self.agent_id[2:-1]
+            expanded = os.getenv(var_name)
+            if expanded:
+                self.logger.info(f"Expanded agent_id placeholder {var_name} -> {expanded}")
+                self.agent_id = expanded
+            else:
+                self.logger.warning(f"Agent ID placeholder {self.agent_id} could not be resolved from environment.")
     
     async def initialize(self) -> None:
         """Initialize the Azure Foundry agent."""
@@ -151,18 +161,38 @@ class SemanticKernelAzureFoundryAgent(BaseAgent):
         if not self.project_endpoint:
             raise AgentInitializationException("PROJECT_ENDPOINT required for Azure Foundry agents")
         
-        try:
-            # Create Azure AI agent with specific credential configuration
-            # Exclude authentication methods that might use non-HTTPS URLs
-            credential = DefaultAzureCredential(
-                exclude_visual_studio_code_credential=True,
-                exclude_azure_cli_credential=False,  # Keep CLI credential as it's commonly used
-                exclude_environment_credential=False,  # Keep environment credential
-                exclude_managed_identity_credential=True,  # Exclude managed identity for local dev
-                exclude_shared_token_cache_credential=True,
-                exclude_interactive_browser_credential=True,
-                exclude_azure_powershell_credential=True
+        # Support unresolved literal placeholder patterns like ${PROJECT_ENDPOINT}
+        if self.project_endpoint.startswith("${") and self.project_endpoint.endswith("}"):
+            var_name = self.project_endpoint[2:-1]
+            expanded = os.getenv(var_name)
+            if expanded:
+                self.project_endpoint = expanded
+                self.logger.info(f"Expanded PROJECT_ENDPOINT placeholder {var_name} -> {self.project_endpoint}")
+            else:
+                self.logger.warning(f"PROJECT_ENDPOINT placeholder {self.project_endpoint} could not be resolved from environment.")
+        
+        # Explicit HTTPS check – DefaultAzureCredential (bearer token) cannot be used with non-TLS endpoints
+        if not self.project_endpoint.lower().startswith("https://"):
+            raise AgentInitializationException(
+                f"PROJECT_ENDPOINT must start with https:// (got: {self.project_endpoint}). "
+                "Azure credentials refuse bearer token authentication for non-TLS URLs. If you are tunneling locally, use an HTTPS tunnel (e.g. 'https://<subdomain>.ngrok.io') instead of http://localhost."
             )
+        if "${" in self.project_endpoint:
+            self.logger.warning(f"PROJECT_ENDPOINT appears to contain an unresolved placeholder: {self.project_endpoint}")
+
+        # Validate agent_id format (alphanumeric, underscore, dash)
+        if self.agent_id and not self.agent_id.replace('_','').replace('-','').isalnum():
+            raise AgentInitializationException(
+                f"Agent ID '{self.agent_id}' has invalid characters. Ensure environment variable contains only letters, numbers, underscores, or dashes."
+            )
+        if "${" in (self.agent_id or ""):
+            raise AgentInitializationException(
+                f"Agent ID contains unresolved placeholder: {self.agent_id}. Set PEOPLE_AGENT_ID / KNOWLEDGE_AGENT_ID properly."
+            )
+        
+        try:
+            # Use simple DefaultAzureCredential - the HTTPS check above should prevent the bearer token error
+            credential = DefaultAzureCredential()
             client = AIProjectClient(endpoint=self.project_endpoint, credential=credential)
             definition = await client.agents.get_agent(agent_id=self.agent_id)
             

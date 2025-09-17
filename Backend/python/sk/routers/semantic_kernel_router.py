@@ -64,20 +64,23 @@ Selected Agent:"""
     
     async def initialize(self) -> None:
         """Initialize the Semantic Kernel for routing."""
-        endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-        deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT")
-        api_key = os.getenv("AZURE_OPENAI_KEY")
+        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        api_key = os.getenv("AZURE_OPENAI_API_KEY")
+        api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
+        deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o-mini")
         
-        if not all([endpoint, deployment, api_key]):
-            raise RoutingException("Azure OpenAI configuration required for SK router")
+        if not azure_endpoint:
+            raise RoutingException("AZURE_OPENAI_ENDPOINT required for SK router")
+        if not api_key:
+            raise RoutingException("AZURE_OPENAI_API_KEY required for SK router")
         
         try:
             # Create kernel and add chat completion service
             self.kernel = Kernel()
             self.kernel.add_service(
                 AzureChatCompletion(
-                    endpoint=endpoint,
-                    deployment_name=deployment,
+                    endpoint=azure_endpoint,
+                    deployment_name=deployment_name,
                     api_key=api_key
                 )
             )
@@ -195,19 +198,22 @@ Best Agent:"""
 
     async def initialize(self) -> None:
         """Initialize the multi-modal router."""
-        endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-        deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT")
-        api_key = os.getenv("AZURE_OPENAI_KEY")
+        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        api_key = os.getenv("AZURE_OPENAI_API_KEY")
+        api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
+        deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o-mini")
         
-        if not all([endpoint, deployment, api_key]):
-            raise RoutingException("Azure OpenAI configuration required")
+        if not azure_endpoint:
+            raise RoutingException("AZURE_OPENAI_ENDPOINT required for multi-modal router")
+        if not api_key:
+            raise RoutingException("AZURE_OPENAI_API_KEY required for multi-modal router")
         
         try:
             self.kernel = Kernel()
             self.kernel.add_service(
                 AzureChatCompletion(
-                    endpoint=endpoint,
-                    deployment_name=deployment,
+                    endpoint=azure_endpoint,
+                    deployment_name=deployment_name,
                     api_key=api_key
                 )
             )

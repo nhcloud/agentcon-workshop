@@ -18,7 +18,7 @@ from semantic_kernel.contents import ChatHistory, ChatMessageContent, AuthorRole
 
 from shared import (
     AgentConfig, AgentMessage, AgentResponse, AgentType, 
-    MessageRole, AgentInitializationException
+    MessageRole, AgentInitializationException, BaseAgent
 )
 
 
@@ -32,13 +32,23 @@ class GroupChatRole(Enum):
 @dataclass
 class GroupChatConfig:
     """Configuration for group chat."""
-    name: str
+    name: str = "DefaultGroupChat"
     description: str = ""
     max_turns: int = 10
-    enable_termination_keyword: bool = True
     termination_keyword: str = "TERMINATE"
+    enable_termination_keyword: bool = True
     require_facilitator: bool = True
+    response_wait_time: float = 0.5
     auto_select_speaker: bool = True
+
+
+@dataclass
+class GroupChatParticipantInfo:
+    """Information about a group chat participant."""
+    agent_name: str
+    role: GroupChatRole = GroupChatRole.PARTICIPANT
+    priority: int = 1
+    max_consecutive_turns: int = 3
 
 
 @dataclass
@@ -77,28 +87,26 @@ class SemanticKernelAgentGroupChat:
             
         try:
             # Initialize Semantic Kernel
-            endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-            deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT")
-            api_key = os.getenv("AZURE_OPENAI_KEY")
+            azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+            api_key = os.getenv("AZURE_OPENAI_API_KEY")
+            api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
+            deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o-mini")
             
-            if not all([endpoint, deployment, api_key]):
-                raise AgentInitializationException(
-                    "AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_DEPLOYMENT, and AZURE_OPENAI_KEY are required"
+            if azure_endpoint and api_key:
+                self.kernel = Kernel()
+                self.kernel.add_service(
+                    AzureChatCompletion(
+                        endpoint=azure_endpoint,
+                        deployment_name=deployment_name,
+                        api_key=api_key
+                    )
                 )
-            
-            self.kernel = Kernel()
-            self.kernel.add_service(
-                AzureChatCompletion(
-                    endpoint=endpoint,
-                    deployment_name=deployment,
-                    api_key=api_key
-                )
-            )
             
             self.is_initialized = True
             self.logger.info(f"Initialized group chat: {self.name}")
             
         except Exception as e:
+            self.logger.error(f"Failed to initialize group chat: {e}")
             raise AgentInitializationException(f"Failed to initialize group chat: {e}")
     
     async def add_participant(
@@ -163,7 +171,7 @@ class SemanticKernelAgentGroupChat:
         ]
     
     async def _select_next_speaker(self, message: str, current_speaker: Optional[str] = None) -> str:
-        """Select the next speaker based on the message content and group dynamics."""
+        """Select the next speaker based on message content and agent expertise."""
         active_participants = self.get_active_participants()
         
         if not active_participants:
@@ -184,6 +192,23 @@ class SemanticKernelAgentGroupChat:
             for name in active_participants:
                 self.consecutive_turns[name] = 0
             available_participants = active_participants
+        
+        # Content-based selection
+        message_lower = message.lower()
+        
+        # Check for people-related queries
+        if any(keyword in message_lower for keyword in ['who', 'person', 'people', 'team', 'member', 'employee', 'colleague']):
+            people_agents = [name for name in available_participants if 'people' in name.lower()]
+            if people_agents:
+                self.logger.info(f"Selected {people_agents[0]} for people-related query")
+                return people_agents[0]
+        
+        # Check for knowledge/documentation queries
+        if any(keyword in message_lower for keyword in ['what', 'how', 'explain', 'documentation', 'knowledge', 'information', 'guide', 'tutorial']):
+            knowledge_agents = [name for name in available_participants if 'knowledge' in name.lower()]
+            if knowledge_agents:
+                self.logger.info(f"Selected {knowledge_agents[0]} for knowledge query")
+                return knowledge_agents[0]
         
         # Simple selection strategy: rotate through participants
         # In a more sophisticated implementation, you could use ML to select based on expertise
@@ -318,6 +343,9 @@ class SemanticKernelAgentGroupChat:
                     
                     current_message = response_content_str
                     
+                    # Small delay between responses
+                    await asyncio.sleep(self.config.response_wait_time)
+                    
                 except Exception as e:
                     self.logger.error(f"Error getting response from {next_speaker}: {e}")
                     error_response = AgentResponse(
@@ -342,6 +370,98 @@ class SemanticKernelAgentGroupChat:
             raise
         finally:
             self.conversation_active = False
+
+    async def broadcast_message(
+        self,
+        message: str,
+        sender: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> List[AgentResponse]:
+        """Broadcast the user's message to all active participants once (no chaining).
+
+        This mode is useful when the user expects parallel perspectives rather than
+        a multi-turn simulated conversation. Each agent receives the original user
+        prompt with the prior conversation history (if any) but not other agents'
+        fresh responses for this round.
+        """
+        if not self.is_initialized:
+            await self.initialize()
+
+        active = self.get_active_participants()
+        if not active:
+            raise RuntimeError("No active participants available")
+
+        # Add user message to history
+        if sender:
+            self.chat_history.add_message(
+                ChatMessageContent(
+                    role=AuthorRole.USER,
+                    content=message,
+                    name=sender
+                )
+            )
+        else:
+            self.chat_history.add_user_message(message)
+
+        responses: List[AgentResponse] = []
+        self.turn_count += 1  # Count this broadcast as one logical turn
+
+        # Process each agent independently
+        for agent_name in active:
+            participant = self.participants[agent_name]
+            try:
+                # Create a thread with the current chat history for this agent
+                thread = ChatHistoryAgentThread(chat_history=self.chat_history)
+                
+                # Get agent response
+                agent_responses = []
+                async for response in participant.agent.invoke(
+                    messages=message,
+                    thread=thread
+                ):
+                    agent_responses.append(response)
+                
+                # Extract response content
+                if agent_responses and len(agent_responses) > 0:
+                    last_response = agent_responses[-1]
+                    if hasattr(last_response, 'content'):
+                        response_content = last_response.content
+                    elif hasattr(last_response, 'message') and hasattr(last_response.message, 'content'):
+                        response_content = last_response.message.content
+                    else:
+                        response_content = str(last_response)
+                else:
+                    response_content = "I don't have a response at this time."
+                
+                response_content_str = str(response_content) if response_content else "No response"
+                
+                # Add response to history
+                self.chat_history.add_assistant_message(response_content_str, name=agent_name)
+                
+                # Create response object
+                agent_response = AgentResponse(
+                    content=response_content_str,
+                    agent_name=agent_name,
+                    metadata={
+                        **(metadata or {}),
+                        "turn": self.turn_count,
+                        "group_chat": self.name,
+                        "speaker_role": participant.role.value,
+                        "mode": "broadcast",
+                        "total_participants": len(active)
+                    }
+                )
+                responses.append(agent_response)
+                
+            except Exception as e:
+                self.logger.error(f"Broadcast error for agent {agent_name}: {e}")
+                responses.append(AgentResponse(
+                    content=f"Error from {agent_name}: {e}",
+                    agent_name=agent_name,
+                    metadata={"error": str(e), "mode": "broadcast"}
+                ))
+
+        return responses
     
     async def reset_conversation(self) -> None:
         """Reset the conversation state."""
@@ -352,8 +472,19 @@ class SemanticKernelAgentGroupChat:
         self.conversation_active = False
         self.logger.info("Conversation state reset")
     
-    async def get_conversation_summary(self) -> str:
+    def get_conversation_summary(self) -> Dict[str, Any]:
         """Get a summary of the conversation."""
+        return {
+            "group_chat_name": self.name,
+            "total_turns": self.turn_count,
+            "participants": list(self.participants.keys()),
+            "active_participants": self.get_active_participants(),
+            "conversation_active": self.conversation_active,
+            "message_count": len(self.chat_history.messages)
+        }
+
+    async def get_conversation_text(self) -> str:
+        """Get a text representation of the conversation."""
         messages = []
         for message in self.chat_history.messages:
             speaker = getattr(message, 'name', 'Unknown')
