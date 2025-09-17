@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from semantic_kernel import Kernel
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
-from semantic_kernel.agents import ChatCompletionAgent, AzureAIAgent, ChatHistoryAgentThread
+from semantic_kernel.agents import ChatCompletionAgent, AzureAIAgent, ChatHistoryAgentThread, AzureAIAgentThread
 from semantic_kernel.contents import ChatHistory, ChatMessageContent, AuthorRole
 
 from azure.identity.aio import DefaultAzureCredential
@@ -133,6 +133,7 @@ class SemanticKernelAzureFoundryAgent(BaseAgent):
         self.agent_id = config.framework_config.get("agent_id")
         self.project_endpoint = config.framework_config.get("project_endpoint")
         self.azure_agent: Optional[AzureAIAgent] = None
+        self.client: Optional[AIProjectClient] = None
         
         if not self.agent_id:
             env_key = "PEOPLE_AGENT_ID" if config.agent_type == AgentType.PEOPLE_LOOKUP else "KNOWLEDGE_AGENT_ID"
@@ -193,11 +194,11 @@ class SemanticKernelAzureFoundryAgent(BaseAgent):
         try:
             # Use simple DefaultAzureCredential - the HTTPS check above should prevent the bearer token error
             credential = DefaultAzureCredential()
-            client = AIProjectClient(endpoint=self.project_endpoint, credential=credential)
-            definition = await client.agents.get_agent(agent_id=self.agent_id)
+            self.client = AIProjectClient(endpoint=self.project_endpoint, credential=credential)
+            definition = await self.client.agents.get_agent(agent_id=self.agent_id)
             
             self.azure_agent = AzureAIAgent(
-                client=client,
+                client=self.client,
                 definition=definition,
                 name=self.name,
                 instructions=self.config.instructions or ""
@@ -215,33 +216,34 @@ class SemanticKernelAzureFoundryAgent(BaseAgent):
         metadata: Optional[Dict[str, Any]] = None
     ) -> AgentResponse:
         """Process message using Azure Foundry agent."""
-        if not self.azure_agent:
+        if not self.azure_agent or not self.client:
             raise RuntimeError("Agent not initialized")
         
         try:
-            # Create fresh chat history for this conversation
-            chat_history = ChatHistory()
+            # Create an Azure AI Agent thread with the required client
+            thread = AzureAIAgentThread(client=self.client)
             
-            # Add previous messages to history
+            # Prepare messages list including history and current message
+            messages = []
+            
+            # Add previous messages to the messages list
             for msg in history or []:
                 if msg.role == MessageRole.USER:
-                    chat_history.add_user_message(msg.content)
+                    messages.append(ChatMessageContent(role=AuthorRole.USER, content=msg.content))
                 elif msg.role == MessageRole.ASSISTANT:
-                    chat_history.add_assistant_message(msg.content)
+                    messages.append(ChatMessageContent(role=AuthorRole.ASSISTANT, content=msg.content))
             
             # Add current user message
-            chat_history.add_user_message(message)
+            messages.append(ChatMessageContent(role=AuthorRole.USER, content=message))
             
-            # Set the agent's history
-            self.azure_agent.history = chat_history
-            
-            # Invoke the agent
-            response = await self.azure_agent.invoke()
+            # Invoke the agent with the messages and thread
+            response_item = await self.azure_agent.get_response(messages=messages, thread=thread)
             
             # Extract content from response
-            if response and len(response) > 0:
-                last_message = response[-1]
-                content = last_message.content if hasattr(last_message, 'content') else str(last_message)
+            if response_item and hasattr(response_item, 'message') and hasattr(response_item.message, 'content'):
+                content = response_item.message.content
+            elif response_item and hasattr(response_item, 'content'):
+                content = response_item.content
             else:
                 content = "I apologize, but I couldn't generate a response."
             
