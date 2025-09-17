@@ -2,7 +2,6 @@
 
 from .semantic_kernel_agents import (
     SemanticKernelGenericAgent, SemanticKernelAzureFoundryAgent, 
-    SemanticKernelGeminiAgent, SemanticKernelBedrockAgent,
     SemanticKernelAgentFactory, SEMANTIC_KERNEL_AGENT_CONFIGS
 )
 
@@ -14,8 +13,6 @@ from .agent_group_chat import (
 __all__ = [
     "SemanticKernelGenericAgent",
     "SemanticKernelAzureFoundryAgent",
-    "SemanticKernelGeminiAgent", 
-    "SemanticKernelBedrockAgent",
     "SemanticKernelAgentFactory",
     "SEMANTIC_KERNEL_AGENT_CONFIGS",
     "SemanticKernelAgentGroupChat",

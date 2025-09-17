@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from semantic_kernel import Kernel
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
-from semantic_kernel.agents import ChatCompletionAgent, AgentGroupChat
+from semantic_kernel.agents import ChatCompletionAgent, AgentGroupChat, ChatHistoryAgentThread
 from semantic_kernel.contents import ChatHistory, ChatMessageContent, AuthorRole
 
 from shared import (
@@ -263,26 +263,42 @@ class SemanticKernelAgentGroupChat:
                 
                 # Get response from selected agent
                 try:
-                    # Set agent's chat history
-                    participant.agent.history = self.chat_history
+                    # Create a thread with the current chat history
+                    thread = ChatHistoryAgentThread(chat_history=self.chat_history)
                     
-                    # Get agent response
-                    agent_messages = await participant.agent.invoke(
-                        ChatMessageContent(role=AuthorRole.USER, content=current_message)
-                    )
+                    # Get agent response using the correct invoke method
+                    agent_responses = []
+                    async for response in participant.agent.invoke(
+                        messages=current_message,
+                        thread=thread
+                    ):
+                        agent_responses.append(response)
                     
-                    # Extract response content
-                    if agent_messages and len(agent_messages) > 0:
-                        response_content = agent_messages[-1].content
+                    # Update chat history from the thread
+                    self.chat_history = thread.chat_history
+                    
+                    # Extract response content from the agent responses
+                    if agent_responses and len(agent_responses) > 0:
+                        # Get the last response content
+                        last_response = agent_responses[-1]
+                        if hasattr(last_response, 'content'):
+                            response_content = last_response.content
+                        elif hasattr(last_response, 'message') and hasattr(last_response.message, 'content'):
+                            response_content = last_response.message.content
+                        else:
+                            response_content = str(last_response)
                     else:
                         response_content = "I don't have a response at this time."
                     
+                    # Ensure response_content is a string
+                    response_content_str = str(response_content) if response_content else "No response"
+                    
                     # Add response to history
-                    self.chat_history.add_assistant_message(response_content, name=next_speaker)
+                    self.chat_history.add_assistant_message(response_content_str, name=next_speaker)
                     
                     # Create response object
                     response = AgentResponse(
-                        content=response_content,
+                        content=response_content_str,
                         agent_name=next_speaker,
                         metadata={
                             **(metadata or {}),
@@ -295,12 +311,12 @@ class SemanticKernelAgentGroupChat:
                     responses.append(response)
                     
                     # Check for termination
-                    if await self._should_terminate(response_content):
+                    if await self._should_terminate(response_content_str):
                         self.conversation_active = False
                         self.logger.info(f"Conversation terminated after {self.turn_count} turns")
                         break
                     
-                    current_message = response_content
+                    current_message = response_content_str
                     
                 except Exception as e:
                     self.logger.error(f"Error getting response from {next_speaker}: {e}")
