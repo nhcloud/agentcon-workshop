@@ -2,7 +2,7 @@
 
 A comprehensive workshop for building sophisticated AI agent applications using Azure OpenAI services with multiple implementation options. Learn to create chatbot applications with specialized agent routing, group chat capabilities, and modern React frontends. The workshop provides both Python (Semantic Kernel & LangChain) and .NET implementations to demonstrate multi-agent architectures.
 
-## Workshop Features
+## Workshop Features 
 
 - 🤖 **Multiple Implementation Options**:
   - Python Semantic Kernel implementation
