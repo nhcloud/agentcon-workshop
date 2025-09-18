@@ -125,6 +125,54 @@ public abstract class BaseAgent : IAgent
 }
 
 /// <summary>
+/// Azure OpenAI Agent - Standard agent that uses Azure OpenAI
+/// </summary>
+public class AzureOpenAIAgent : BaseAgent
+{
+    private readonly string _modelDeployment;
+
+    public override string Name { get; }
+    public override string Description { get; }
+    public override string Instructions { get; }
+
+    public AzureOpenAIAgent(
+        string name,
+        string description,
+        string instructions,
+        string modelDeployment,
+        Kernel kernel,
+        ILogger<AzureOpenAIAgent> logger)
+        : base(kernel, logger)
+    {
+        Name = name;
+        Description = description;
+        Instructions = instructions;
+        _modelDeployment = modelDeployment;
+    }
+
+    public override async Task InitializeAsync()
+    {
+        try
+        {
+            _chatAgent = new ChatCompletionAgent()
+            {
+                Name = Name,
+                Instructions = $"{Instructions}\n\nPowered by Azure OpenAI ({_modelDeployment})",
+                Kernel = _kernel,
+                Arguments = new KernelArguments()
+            };
+            
+            _logger.LogInformation("Initialized Azure OpenAI agent {AgentName} with model {Model}", Name, _modelDeployment);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to initialize Azure OpenAI agent {AgentName}", Name);
+            throw;
+        }
+    }
+}
+
+/// <summary>
 /// Azure AI Foundry Agent that connects to pre-existing agents in Azure AI Foundry
 /// This matches the Python implementation structure
 /// </summary>
@@ -163,7 +211,7 @@ public class AzureAIFoundryAgent : BaseAgent
             _chatAgent = new ChatCompletionAgent()
             {
                 Name = Name,
-                Instructions = $"{Instructions}\n\nAgent ID: {_agentId}\nProject: {_projectEndpoint}",
+                Instructions = $"{Instructions}\n\nAzure AI Foundry Agent ID: {_agentId}\nProject: {_projectEndpoint}",
                 Kernel = _kernel,
                 Arguments = new KernelArguments()
             };
@@ -211,5 +259,29 @@ public class AzureAIFoundryAgent : BaseAgent
             _logger.LogError(ex, "Error in Azure AI Foundry agent {AgentName} responding to message", Name);
             return $"Azure AI Foundry agent error: {ex.Message}";
         }
+    }
+
+    public override async Task<ChatResponse> ChatAsync(ChatRequest request)
+    {
+        var sessionId = request.SessionId ?? Guid.NewGuid().ToString();
+        var startTime = DateTime.UtcNow;
+        
+        var content = await RespondAsync(request.Message, request.Context);
+        var endTime = DateTime.UtcNow;
+
+        return new ChatResponse
+        {
+            Content = content,
+            Agent = Name,
+            SessionId = sessionId,
+            Timestamp = endTime,
+            Usage = new UsageInfo
+            {
+                PromptTokens = EstimateTokens(request.Message),
+                CompletionTokens = EstimateTokens(content),
+                TotalTokens = EstimateTokens(request.Message) + EstimateTokens(content)
+            },
+            ProcessingTimeMs = (int)(endTime - startTime).TotalMilliseconds
+        };
     }
 }

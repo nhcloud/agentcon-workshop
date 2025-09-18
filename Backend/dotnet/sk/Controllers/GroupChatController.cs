@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace DotNetSemanticKernel.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
 [Produces("application/json")]
 public class GroupChatController : ControllerBase
 {
@@ -28,9 +27,10 @@ public class GroupChatController : ControllerBase
 
     /// <summary>
     /// Start a group chat with multiple agents
+    /// Matches Python: POST /group-chat
     /// </summary>
-    [HttpPost]
-    public async Task<ActionResult<GroupChatResponse>> StartGroupChat([FromBody] GroupChatRequest request)
+    [HttpPost("group-chat")]
+    public async Task<ActionResult<object>> StartGroupChat([FromBody] GroupChatRequest request)
     {
         try
         {
@@ -61,26 +61,33 @@ public class GroupChatController : ControllerBase
             _logger.LogInformation("Group chat request with {AgentCount} agents: {Agents}", 
                 request.Agents.Count, string.Join(", ", request.Agents));
 
-            var startTime = DateTime.UtcNow;
-            GroupChatResponse response;
+            // Use Semantic Kernel AgentGroupChat if requested, otherwise standard
+            var response = request.UseSemanticKernelGroupChat 
+                ? await _groupChatService.StartSemanticKernelGroupChatAsync(request)
+                : await _groupChatService.StartGroupChatAsync(request);
+
+            // Transform response to match Python FastAPI format
+            var responseMessages = response.Messages?.Where(m => m.Agent != "user").ToList() ?? new List<GroupChatMessage>();
             
-            // Use Semantic Kernel AgentGroupChat if requested and supported
-            if (request.UseSemanticKernelGroupChat)
+            return Ok(new
             {
-                _logger.LogInformation("Using Semantic Kernel AgentGroupChat implementation");
-                response = await _groupChatService.StartSemanticKernelGroupChatAsync(request);
-            }
-            else
-            {
-                _logger.LogInformation("Using standard group chat implementation");
-                response = await _groupChatService.StartGroupChatAsync(request);
-            }
-
-            var endTime = DateTime.UtcNow;
-            response.TotalProcessingTimeMs = (int)(endTime - startTime).TotalMilliseconds;
-            response.AgentCount = request.Agents.Count;
-
-            return Ok(response);
+                conversation_id = response.SessionId,
+                total_turns = response.TotalTurns,
+                active_participants = response.Messages?.Select(m => m.Agent).Distinct().Where(a => a != "user").ToList() ?? new List<string>(),
+                responses = responseMessages.Select(m => new
+                {
+                    agent = m.Agent,
+                    content = m.Content,
+                    message_id = m.MessageId,
+                    metadata = new { turn = m.Turn, agent_type = m.AgentType, timestamp = m.Timestamp }
+                }).ToList(),
+                summary = response.Summary,
+                content = response.Summary ?? responseMessages.LastOrDefault()?.Content,
+                metadata = new { 
+                    group_chat_type = response.GroupChatType,
+                    agent_count = response.AgentCount
+                }
+            });
         }
         catch (ArgumentException ex)
         {
@@ -95,185 +102,66 @@ public class GroupChatController : ControllerBase
     }
 
     /// <summary>
-    /// Start an advanced Semantic Kernel group chat
+    /// Get available group chat templates
+    /// Matches Python: GET /group-chat/templates
     /// </summary>
-    [HttpPost("semantic-kernel")]
-    public async Task<ActionResult<GroupChatResponse>> StartSemanticKernelGroupChat([FromBody] GroupChatRequest request)
+    [HttpGet("group-chat/templates")]
+    public ActionResult<object> GetGroupChatTemplates()
     {
         try
         {
-            request.UseSemanticKernelGroupChat = true;
-            return await StartGroupChat(request);
+            // Return empty templates for now - can be extended later
+            return Ok(new { 
+                templates = new List<object>()
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in Semantic Kernel group chat");
-            return StatusCode(500, new { error = "Internal server error occurred during SK group chat" });
+            _logger.LogError(ex, "Error retrieving group chat templates");
+            return StatusCode(500, new { error = "Internal server error while retrieving templates" });
         }
     }
 
     /// <summary>
-    /// Get session history
+    /// Get active group chats
+    /// Matches Python: GET /group-chats
     /// </summary>
-    [HttpGet("sessions/{sessionId}/history")]
-    public async Task<ActionResult<IEnumerable<GroupChatMessage>>> GetSessionHistory(string sessionId)
+    [HttpGet("group-chats")]
+    public async Task<ActionResult<object>> GetActiveGroupChats()
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(sessionId))
+            var activeSessions = await _sessionManager.GetActiveSessionsAsync();
+            var groupChats = new List<object>();
+            
+            foreach (var sessionId in activeSessions)
             {
-                return BadRequest(new { error = "Session ID is required" });
+                try
+                {
+                    var sessionInfo = await _sessionManager.GetSessionInfoAsync(sessionId);
+                    groupChats.Add(new
+                    {
+                        session_id = sessionId,
+                        created_at = sessionInfo.CreatedAt,
+                        last_activity = sessionInfo.LastActivity,
+                        message_count = sessionInfo.MessageCount,
+                        agent_types = sessionInfo.AgentTypes
+                    });
+                }
+                catch
+                {
+                    // Skip invalid sessions
+                }
             }
-
-            var history = await _sessionManager.GetSessionHistoryAsync(sessionId);
-            return Ok(new { session_id = sessionId, message_count = history.Count, messages = history });
+            
+            return Ok(new { 
+                group_chats = groupChats
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving session history for {SessionId}", sessionId);
-            return StatusCode(500, new { error = "Internal server error while retrieving session history" });
-        }
-    }
-
-    /// <summary>
-    /// Get session information
-    /// </summary>
-    [HttpGet("sessions/{sessionId}/info")]
-    public async Task<ActionResult<SessionInfo>> GetSessionInfo(string sessionId)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(sessionId))
-            {
-                return BadRequest(new { error = "Session ID is required" });
-            }
-
-            var exists = await _sessionManager.SessionExistsAsync(sessionId);
-            if (!exists)
-            {
-                return NotFound(new { error = "Session not found" });
-            }
-
-            var history = await _sessionManager.GetSessionHistoryAsync(sessionId);
-            var agentTypes = history.Where(m => m.Agent != "user")
-                                  .Select(m => m.Agent)
-                                  .Distinct()
-                                  .ToList();
-
-            var sessionInfo = new SessionInfo
-            {
-                SessionId = sessionId,
-                MessageCount = history.Count,
-                AgentTypes = agentTypes,
-                CreatedAt = history.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow,
-                LastActivity = history.LastOrDefault()?.Timestamp ?? DateTime.UtcNow
-            };
-
-            return Ok(sessionInfo);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving session info for {SessionId}", sessionId);
-            return StatusCode(500, new { error = "Internal server error while retrieving session info" });
-        }
-    }
-
-    /// <summary>
-    /// Clear session history
-    /// </summary>
-    [HttpDelete("sessions/{sessionId}")]
-    public async Task<ActionResult> ClearSession(string sessionId)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(sessionId))
-            {
-                return BadRequest(new { error = "Session ID is required" });
-            }
-
-            await _sessionManager.ClearSessionAsync(sessionId);
-            return Ok(new { message = "Session cleared successfully", session_id = sessionId });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error clearing session {SessionId}", sessionId);
-            return StatusCode(500, new { error = "Internal server error while clearing session" });
-        }
-    }
-
-    /// <summary>
-    /// Check if session exists
-    /// </summary>
-    [HttpGet("sessions/{sessionId}/exists")]
-    public async Task<ActionResult<bool>> SessionExists(string sessionId)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(sessionId))
-            {
-                return BadRequest(new { error = "Session ID is required" });
-            }
-
-            var exists = await _sessionManager.SessionExistsAsync(sessionId);
-            return Ok(new { session_id = sessionId, exists });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error checking session existence for {SessionId}", sessionId);
-            return StatusCode(500, new { error = "Internal server error while checking session" });
-        }
-    }
-
-    /// <summary>
-    /// Get all active sessions
-    /// </summary>
-    [HttpGet("sessions")]
-    public async Task<ActionResult<IEnumerable<string>>> GetActiveSessions()
-    {
-        try
-        {
-            var sessions = await _sessionManager.GetActiveSessionsAsync();
-            return Ok(new { session_count = sessions.Count(), sessions });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving active sessions");
-            return StatusCode(500, new { error = "Internal server error while retrieving sessions" });
-        }
-    }
-
-    /// <summary>
-    /// Summarize a conversation from session history
-    /// </summary>
-    [HttpPost("sessions/{sessionId}/summarize")]
-    public async Task<ActionResult<string>> SummarizeSession(string sessionId)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(sessionId))
-            {
-                return BadRequest(new { error = "Session ID is required" });
-            }
-
-            var exists = await _sessionManager.SessionExistsAsync(sessionId);
-            if (!exists)
-            {
-                return NotFound(new { error = "Session not found" });
-            }
-
-            var history = await _sessionManager.GetSessionHistoryAsync(sessionId);
-            if (!history.Any())
-            {
-                return Ok(new { summary = "No conversation to summarize", session_id = sessionId });
-            }
-
-            var summary = await _groupChatService.SummarizeConversationAsync(history);
-            return Ok(new { summary, session_id = sessionId, message_count = history.Count });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error summarizing session {SessionId}", sessionId);
-            return StatusCode(500, new { error = "Internal server error while summarizing session" });
+            _logger.LogError(ex, "Error retrieving active group chats");
+            return StatusCode(500, new { error = "Internal server error while retrieving group chats" });
         }
     }
 }

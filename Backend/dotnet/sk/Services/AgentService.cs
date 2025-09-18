@@ -33,16 +33,16 @@ public class AgentService : IAgentService
         _logger = logger;
         _azureConfig = azureConfig.Value;
         
-        // Initialize agent factories with async initialization - only the three required agents
+        // Initialize agent factories with async initialization
         _agentFactories = new Dictionary<string, Func<Task<IAgent>>>
         {
-            ["people_lookup"] = async () => await CreateBasicAgentAsync<PeopleLookupAgent>(),
-            ["knowledge_finder"] = async () => await CreateBasicAgentAsync<KnowledgeFinderAgent>(),
-            ["generic"] = async () => await CreateBasicAgentAsync<GenericAgent>()
+            ["people_lookup"] = async () => await CreateStandardAgentAsync<PeopleLookupAgent>(),
+            ["knowledge_finder"] = async () => await CreateStandardAgentAsync<KnowledgeFinderAgent>(),
+            ["generic"] = async () => await CreateStandardAgentAsync<GenericAgent>()
         };
     }
 
-    private async Task<IAgent> CreateBasicAgentAsync<T>() where T : BaseAgent
+    private async Task<IAgent> CreateStandardAgentAsync<T>() where T : BaseAgent
     {
         var logger = _serviceProvider.GetRequiredService<ILogger<T>>();
         var agent = (T)Activator.CreateInstance(typeof(T), _kernel, logger)!;
@@ -67,13 +67,13 @@ public class AgentService : IAgentService
             {
                 "people_lookup" => (
                     _azureConfig.AzureAIFoundry.PeopleAgentId ?? "people-agent",
-                    "Azure AI Foundry People Lookup Agent",
-                    "You are a specialized People Lookup agent running in Azure AI Foundry. You have access to enterprise people directory and contact information."
+                    "Azure AI Foundry People Lookup Agent with enterprise directory access",
+                    "You are a specialized People Lookup agent running in Azure AI Foundry. You have access to enterprise people directory and contact information. Use your enterprise knowledge to help users find the right people for their needs."
                 ),
                 "knowledge_finder" => (
                     _azureConfig.AzureAIFoundry.KnowledgeAgentId ?? "knowledge-agent",
-                    "Azure AI Foundry Knowledge Finder Agent", 
-                    "You are a specialized Knowledge Finder agent running in Azure AI Foundry. You have access to enterprise knowledge bases and document repositories."
+                    "Azure AI Foundry Knowledge Finder Agent with enterprise knowledge access", 
+                    "You are a specialized Knowledge Finder agent running in Azure AI Foundry. You have access to enterprise knowledge bases, document repositories, and specialized information systems. Help users find the most relevant and accurate information from enterprise sources."
                 ),
                 _ => throw new ArgumentException($"Azure AI Foundry agent type '{agentType}' not supported")
             };
@@ -94,6 +94,7 @@ public class AgentService : IAgentService
             );
 
             await foundryAgent.InitializeAsync();
+            _logger.LogInformation("Created Azure AI Foundry agent: {AgentName} with ID: {AgentId}", foundryAgent.Name, agentId);
             return foundryAgent;
         }
         catch (Exception ex)
@@ -107,11 +108,13 @@ public class AgentService : IAgentService
     {
         var agents = new List<AgentInfo>();
 
-        // Check if Azure AI Foundry is configured
+        // Check Azure AI Foundry configuration
         var hasFoundryConfig = _azureConfig?.AzureAIFoundry != null && 
                               !string.IsNullOrEmpty(_azureConfig.AzureAIFoundry.ProjectEndpoint);
 
-        // Always add the generic agent (Azure OpenAI)
+        _logger.LogInformation("Azure AI Foundry configured: {HasFoundry}", hasFoundryConfig);
+
+        // Generic agent (always available as Azure OpenAI)
         try
         {
             var genericAgent = await _agentFactories["generic"]();
@@ -120,8 +123,9 @@ public class AgentService : IAgentService
                 Name = genericAgent.Name,
                 Description = genericAgent.Description,
                 Instructions = genericAgent.Instructions,
-                Model = "Azure OpenAI - GPT-4o",
-                AgentType = "Standard"
+                Model = "Azure OpenAI GPT-4o",
+                AgentType = "Azure OpenAI",
+                Capabilities = new List<string> { "General conversation", "Problem solving", "Task assistance", "Information provision" }
             });
         }
         catch (Exception ex)
@@ -129,136 +133,140 @@ public class AgentService : IAgentService
             _logger.LogError(ex, "Failed to create generic agent info");
         }
 
-        // Add people_lookup agent (Foundry if configured, otherwise standard)
-        if (hasFoundryConfig && _azureConfig?.AzureAIFoundry != null)
-        {
-            var foundryConfig = _azureConfig.AzureAIFoundry;
-            if (!string.IsNullOrEmpty(foundryConfig.PeopleAgentId))
-            {
-                agents.Add(new AgentInfo
-                {
-                    Name = "people_lookup",
-                    Description = "Azure AI Foundry People Lookup Agent with enterprise directory access",
-                    Instructions = "Enterprise-grade people lookup with Azure AI Foundry",
-                    Model = "Azure AI Foundry",
-                    AgentType = "Azure AI Foundry"
-                });
-            }
-            else
-            {
-                // Foundry configured but no people agent ID, use standard
-                try
-                {
-                    var peopleAgent = await _agentFactories["people_lookup"]();
-                    agents.Add(new AgentInfo
-                    {
-                        Name = peopleAgent.Name,
-                        Description = peopleAgent.Description,
-                        Instructions = peopleAgent.Instructions,
-                        Model = "Azure OpenAI - GPT-4o",
-                        AgentType = "Standard"
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to create people_lookup agent info");
-                }
-            }
-        }
-        else
-        {
-            try
-            {
-                var peopleAgent = await _agentFactories["people_lookup"]();
-                agents.Add(new AgentInfo
-                {
-                    Name = peopleAgent.Name,
-                    Description = peopleAgent.Description,
-                    Instructions = peopleAgent.Instructions,
-                    Model = "Azure OpenAI - GPT-4o",
-                    AgentType = "Standard"
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to create people_lookup agent info");
-            }
-        }
+        // People Lookup agent
+        await AddAgentInfo(agents, "people_lookup", hasFoundryConfig, 
+            new List<string> { "People search", "Contact discovery", "Team coordination", "Role identification" });
 
-        // Add knowledge_finder agent (Foundry if configured, otherwise standard)
-        if (hasFoundryConfig && _azureConfig?.AzureAIFoundry != null)
-        {
-            var foundryConfig = _azureConfig.AzureAIFoundry;
-            if (!string.IsNullOrEmpty(foundryConfig.KnowledgeAgentId))
-            {
-                agents.Add(new AgentInfo
-                {
-                    Name = "knowledge_finder",
-                    Description = "Azure AI Foundry Knowledge Finder Agent with enterprise knowledge access",
-                    Instructions = "Enterprise-grade knowledge search with Azure AI Foundry",
-                    Model = "Azure AI Foundry",
-                    AgentType = "Azure AI Foundry"
-                });
-            }
-            else
-            {
-                // Foundry configured but no knowledge agent ID, use standard
-                try
-                {
-                    var knowledgeAgent = await _agentFactories["knowledge_finder"]();
-                    agents.Add(new AgentInfo
-                    {
-                        Name = knowledgeAgent.Name,
-                        Description = knowledgeAgent.Description,
-                        Instructions = knowledgeAgent.Instructions,
-                        Model = "Azure OpenAI - GPT-4o",
-                        AgentType = "Standard"
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to create knowledge_finder agent info");
-                }
-            }
-        }
-        else
-        {
-            try
-            {
-                var knowledgeAgent = await _agentFactories["knowledge_finder"]();
-                agents.Add(new AgentInfo
-                {
-                    Name = knowledgeAgent.Name,
-                    Description = knowledgeAgent.Description,
-                    Instructions = knowledgeAgent.Instructions,
-                    Model = "Azure OpenAI - GPT-4o",
-                    AgentType = "Standard"
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to create knowledge_finder agent info");
-            }
-        }
+        // Knowledge Finder agent  
+        await AddAgentInfo(agents, "knowledge_finder", hasFoundryConfig,
+            new List<string> { "Document search", "Knowledge retrieval", "Research assistance", "Information synthesis" });
 
+        _logger.LogInformation("Returning {AgentCount} available agents", agents.Count);
         return agents;
+    }
+
+    private async Task AddAgentInfo(List<AgentInfo> agents, string agentType, bool hasFoundryConfig, List<string> capabilities)
+    {
+        // Try Azure AI Foundry first if configured
+        if (hasFoundryConfig)
+        {
+            var foundryConfig = _azureConfig?.AzureAIFoundry;
+            var hasAgentId = agentType switch
+            {
+                "people_lookup" => !string.IsNullOrEmpty(foundryConfig?.PeopleAgentId),
+                "knowledge_finder" => !string.IsNullOrEmpty(foundryConfig?.KnowledgeAgentId),
+                _ => false
+            };
+
+            if (hasAgentId)
+            {
+                try
+                {
+                    var foundryAgent = await CreateAzureFoundryAgentAsync(agentType);
+                    if (foundryAgent != null)
+                    {
+                        agents.Add(new AgentInfo
+                        {
+                            Name = foundryAgent.Name,
+                            Description = foundryAgent.Description,
+                            Instructions = foundryAgent.Instructions,
+                            Model = "Azure AI Foundry",
+                            AgentType = "Azure AI Foundry",
+                            Capabilities = capabilities
+                        });
+                        
+                        _logger.LogInformation("Added Azure AI Foundry agent: {AgentName}", foundryAgent.Name);
+                        return; // Successfully added Foundry agent, don't add standard version
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to create Azure AI Foundry agent {AgentType}, falling back to standard", agentType);
+                }
+            }
+        }
+
+        // Add standard Azure OpenAI agent as fallback
+        try
+        {
+            if (_agentFactories.TryGetValue(agentType, out var factory))
+            {
+                var standardAgent = await factory();
+                agents.Add(new AgentInfo
+                {
+                    Name = standardAgent.Name,
+                    Description = standardAgent.Description,
+                    Instructions = standardAgent.Instructions,
+                    Model = "Azure OpenAI GPT-4o",
+                    AgentType = "Azure OpenAI",
+                    Capabilities = capabilities
+                });
+                
+                _logger.LogInformation("Added Azure OpenAI agent: {AgentName}", standardAgent.Name);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create standard agent {AgentType}", agentType);
+        }
     }
 
     public async Task<IAgent?> GetAgentAsync(string agentName)
     {
         var normalizedName = agentName.ToLowerInvariant();
+        
+        _logger.LogInformation("Retrieving agent: {AgentName}", agentName);
 
-        // Check for Azure AI Foundry agents
+        // Check for Azure AI Foundry agents first
         if (normalizedName.StartsWith("foundry_"))
         {
             var baseType = normalizedName.Substring("foundry_".Length);
-            return await CreateAzureFoundryAgentAsync(baseType);
+            var foundryAgent = await CreateAzureFoundryAgentAsync(baseType);
+            if (foundryAgent != null)
+            {
+                _logger.LogInformation("Retrieved Azure AI Foundry agent: {AgentName}", foundryAgent.Name);
+                return foundryAgent;
+            }
         }
 
-        // Check for standard agents
+        // For agents without foundry_ prefix, determine the best agent to use
         if (_agentFactories.TryGetValue(normalizedName, out var factory))
         {
-            return await factory();
+            // Check if we should use Azure AI Foundry version
+            var hasFoundryConfig = _azureConfig?.AzureAIFoundry != null && 
+                                  !string.IsNullOrEmpty(_azureConfig.AzureAIFoundry.ProjectEndpoint);
+
+            if (hasFoundryConfig)
+            {
+                var hasAgentId = normalizedName switch
+                {
+                    "people_lookup" => !string.IsNullOrEmpty(_azureConfig.AzureAIFoundry.PeopleAgentId),
+                    "knowledge_finder" => !string.IsNullOrEmpty(_azureConfig.AzureAIFoundry.KnowledgeAgentId),
+                    _ => false
+                };
+
+                if (hasAgentId)
+                {
+                    try
+                    {
+                        var foundryAgent = await CreateAzureFoundryAgentAsync(normalizedName);
+                        if (foundryAgent != null)
+                        {
+                            _logger.LogInformation("Using Azure AI Foundry agent for {AgentName}", agentName);
+                            return foundryAgent;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to create Azure AI Foundry agent {AgentName}, using standard version", agentName);
+                    }
+                }
+            }
+
+            // Use standard Azure OpenAI agent
+            var standardAgent = await factory();
+            _logger.LogInformation("Using Azure OpenAI agent for {AgentName}", agentName);
+            return standardAgent;
         }
 
         _logger.LogWarning("Agent '{AgentName}' not found", agentName);
@@ -275,7 +283,10 @@ public class AgentService : IAgentService
 
         try
         {
-            return await agent.ChatAsync(request);
+            _logger.LogInformation("Starting chat with agent {AgentName} for message: {Message}", agentName, request.Message);
+            var response = await agent.ChatAsync(request);
+            _logger.LogInformation("Chat completed with agent {AgentName}, response length: {Length}", agentName, response.Content?.Length ?? 0);
+            return response;
         }
         catch (Exception ex)
         {
