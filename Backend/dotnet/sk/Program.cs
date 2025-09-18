@@ -4,23 +4,12 @@ using Microsoft.SemanticKernel;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Text;
+using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load environment variables from .env file if it exists
-if (File.Exists(".env"))
-{
-    foreach (var line in File.ReadAllLines(".env"))
-    {
-        if (line.StartsWith("#") || !line.Contains("=")) continue;
-        
-        var parts = line.Split('=', 2);
-        if (parts.Length == 2)
-        {
-            Environment.SetEnvironmentVariable(parts[0].Trim(), parts[1].Trim());
-        }
-    }
-}
+// Load environment variables from .env file
+Env.Load();
 
 // Add services to the container
 builder.Services.AddControllers();
