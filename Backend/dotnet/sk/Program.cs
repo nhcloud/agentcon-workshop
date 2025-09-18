@@ -2,6 +2,7 @@ using DotNetSemanticKernel.Configuration;
 using DotNetSemanticKernel.Services;
 using Microsoft.SemanticKernel;
 using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerUI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,7 +34,7 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Configure CORS
+// Configure CORS - more permissive for development
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -41,10 +42,21 @@ builder.Services.AddCors(options =>
         var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? 
                          builder.Configuration["FRONTEND_URL"] ?? 
                          "http://localhost:3001";
-        policy.WithOrigins(frontendUrl)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        
+        if (builder.Environment.IsDevelopment())
+        {
+            // More permissive CORS for development
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+        else
+        {
+            policy.WithOrigins(frontendUrl)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
     });
 });
 
@@ -69,7 +81,7 @@ builder.Services.Configure<AzureAIConfig>(options =>
             Endpoint = azureOpenAIEndpoint,
             ApiKey = azureOpenAIApiKey,
             DeploymentName = azureOpenAIDeployment ?? "gpt-4o",
-            ApiVersion = azureOpenAIApiVersion ?? "2024-02-01"
+            ApiVersion = azureOpenAIApiVersion ?? "2024-10-21"
         };
     }
     else
@@ -115,7 +127,7 @@ builder.Services.AddScoped<IKernelBuilder>(provider =>
             deploymentName: config.AzureOpenAI.DeploymentName ?? "gpt-4o",
             endpoint: config.AzureOpenAI.Endpoint,
             apiKey: config.AzureOpenAI.ApiKey,
-            apiVersion: config.AzureOpenAI.ApiVersion ?? "2024-02-01");
+            apiVersion: config.AzureOpenAI.ApiVersion ?? "2024-10-21");
             
         Console.WriteLine($"? Configured Azure OpenAI: {config.AzureOpenAI.Endpoint}");
         Console.WriteLine($"?? Using deployment: {config.AzureOpenAI.DeploymentName}");
@@ -154,11 +166,25 @@ if (app.Environment.IsDevelopment())
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", ".NET Semantic Kernel Agents API V1");
         c.RoutePrefix = string.Empty; // Make Swagger the default page
+        c.DisplayRequestDuration();
+        c.EnableTryItOutByDefault();
+        c.EnableDeepLinking();
+        c.EnableFilter();
+        c.ShowExtensions();
+        c.EnableValidator();
+        c.SupportedSubmitMethods(SubmitMethod.Get, SubmitMethod.Post, SubmitMethod.Put, SubmitMethod.Delete, SubmitMethod.Patch);
     });
 }
 
-app.UseHttpsRedirection();
+// Important: Use CORS before other middleware
 app.UseCors("AllowFrontend");
+
+// Only use HTTPS redirection in production or when explicitly configured
+if (!app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("ForceHttps"))
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseAuthorization();
 app.MapControllers();
 
@@ -179,13 +205,17 @@ app.MapGet("/health", (Microsoft.Extensions.Options.IOptions<AzureAIConfig> conf
         agents = new { status = "available" },
         session_manager = "operational"
     };
-});
+}).WithName("GetHealth").WithTags("Health");
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8000";
+
+// Configure URLs - only HTTP for development to avoid certificate issues
 app.Urls.Add($"http://localhost:{port}");
 
 Console.WriteLine($"?? .NET Semantic Kernel Agents API");
 Console.WriteLine($"?? Swagger UI: http://localhost:{port}");
 Console.WriteLine($"? Endpoints: /agents, /chat, /group-chat, /health");
+Console.WriteLine($"?? Environment: {app.Environment.EnvironmentName}");
+Console.WriteLine($"?? CORS: {(app.Environment.IsDevelopment() ? "Development (Allow All)" : "Production (Restricted)")}");
 
 app.Run();
