@@ -123,6 +123,7 @@ public class AgentService : IAgentService
             agents.Add(new AgentInfo
             {
                 Name = genericAgent.Name,
+                Id = genericAgent.Name, // Set Id to be the same as Name
                 Description = genericAgent.Description,
                 Instructions = genericAgent.Instructions,
                 Model = "Azure OpenAI GPT-4o",
@@ -170,6 +171,7 @@ public class AgentService : IAgentService
                         agents.Add(new AgentInfo
                         {
                             Name = foundryAgent.Name,
+                            Id = foundryAgent.Name, // Set Id to be the same as Name
                             Description = foundryAgent.Description,
                             Instructions = foundryAgent.Instructions,
                             Model = "Azure AI Foundry",
@@ -197,6 +199,7 @@ public class AgentService : IAgentService
                 agents.Add(new AgentInfo
                 {
                     Name = standardAgent.Name,
+                    Id = standardAgent.Name, // Set Id to be the same as Name
                     Description = standardAgent.Description,
                     Instructions = standardAgent.Instructions,
                     Model = "Azure OpenAI GPT-4o",

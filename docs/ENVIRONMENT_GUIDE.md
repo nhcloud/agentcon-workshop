@@ -19,7 +19,7 @@ This guide explains the environment variable configuration for both Semantic Ker
 ## 📁 File Structure
 
 ```
-python/
+Backend/python/
 ├── env.template         # Shared template with placeholder values for Python
 ├── sk/
 │   └── .env            # Actual environment variables (SK-specific)
@@ -73,11 +73,11 @@ LANGCHAIN_PROJECT=your-project-name
 ### 1. Copy Template Files
 ```bash
 # For Semantic Kernel
-cd python/sk
+cd Backend/python/sk
 cp ../env.template .env
 
 # For LangChain  
-cd python/langchain
+cd Backend/python/langchain
 cp ../env.template .env
 ```
 
@@ -114,11 +114,11 @@ GROUP_CHAT_AI_SUMMARIZATION=true
 ### 3. Validate Configuration
 ```bash
 # Test SK configuration
-cd semantic_kernel
+cd Backend/python/sk
 python -c "from dotenv import load_dotenv; load_dotenv(); import os; print('SK config loaded:', bool(os.getenv('AZURE_OPENAI_ENDPOINT')))"
 
 # Test LC configuration  
-cd langchain
+cd Backend/python/langchain
 python -c "from dotenv import load_dotenv; load_dotenv(); import os; print('LC config loaded:', bool(os.getenv('AZURE_INFERENCE_ENDPOINT')))"
 ```
 

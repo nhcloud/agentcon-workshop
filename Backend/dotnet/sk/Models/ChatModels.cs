@@ -58,6 +58,9 @@ public class AgentInfo
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
 
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
     [JsonPropertyName("description")]
     public string Description { get; set; } = string.Empty;
 
@@ -86,7 +89,7 @@ public class GroupChatRequest
     public string? SessionId { get; set; }
 
     [JsonPropertyName("max_turns")]
-    public int MaxTurns { get; set; } = 3;
+    public int MaxTurns { get; set; } = 2;
 
     [JsonPropertyName("use_semantic_kernel_groupchat")]
     public bool UseSemanticKernelGroupChat { get; set; } = false;

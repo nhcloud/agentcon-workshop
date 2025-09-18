@@ -38,9 +38,10 @@ backend/
 │   │   ├── config.yml          # Configuration file
 │   │   └── requirements.txt    # Dependencies
 │   ├── examples/               # Python configuration examples
-│   └── env.template            # Environment variables template
+│   ├── env.template            # Environment variables template
+│   └── .gitignore              # Python-specific ignore rules
 ├── dotnet/                     # .NET implementations
-│   ├── agents-workshop.sln     # Visual Studio solution
+│   ├── agentcon-workshop.sln   # Visual Studio solution
 │   ├── sk/                     # .NET Semantic Kernel implementation
 │   │   ├── Controllers/        # ASP.NET Core API controllers
 │   │   ├── Services/           # Business logic services
@@ -48,8 +49,11 @@ backend/
 │   │   ├── Models/             # Data transfer objects
 │   │   ├── Configuration/      # Configuration classes
 │   │   ├── Program.cs          # Application entry point
+│   │   ├── .env                # Environment configuration
+│   │   ├── test-workshop.http  # API testing collection
+│   │   ├── workshop_dotnet_semantic_kernel.ipynb  # Interactive notebook
 │   │   └── DotNetSemanticKernel.csproj  # Project file
-│   └── examples/               # .NET configuration examples
+│   └── .gitignore              # .NET-specific ignore rules
 └── README.md                   # This file
 ```
 
@@ -154,14 +158,11 @@ dotnet restore
 
 2. **Configure environment:**
 ```bash
-# Copy environment template
-cp .env.template .env
-
-# Edit .env with your Azure OpenAI or GitHub Models credentials
+# Edit .env file with your Azure OpenAI credentials
 # AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 # AZURE_OPENAI_API_KEY=your_api_key
-# OR
-# GITHUB_TOKEN=your_github_token (for GitHub Models)
+# AZURE_OPENAI_DEPLOYMENT_NAME=your_deployment_name
+# AZURE_OPENAI_API_VERSION=2024-02-01
 ```
 
 3. **Run the application:**
@@ -173,7 +174,14 @@ dotnet watch run
 dotnet run
 ```
 
-The .NET API will be available at `http://localhost:8002` with Swagger UI for testing.
+The .NET API will be available at `http://localhost:8000` with Swagger UI for testing.
+
+4. **Test the API:**
+```bash
+# Use the test-workshop.http file in VS Code with REST Client extension
+# Or visit http://localhost:8000 for Swagger UI
+# Or use the interactive Jupyter notebook: workshop_dotnet_semantic_kernel.ipynb
+```
 
 ## Adding New Agents
 
@@ -357,7 +365,23 @@ export DEBUG_LOGS=1
 ### Health Checks
 Monitor system health:
 ```bash
+# Python implementations
 curl http://localhost:8000/health
+
+# .NET implementation  
+curl http://localhost:8000/health
+```
+
+### API Testing
+Test your implementations:
+```bash
+# For .NET - use VS Code with REST Client extension
+# Open: backend/dotnet/sk/test-workshop.http
+
+# For interactive learning - .NET Jupyter notebook
+# Open: backend/dotnet/sk/workshop_dotnet_semantic_kernel.ipynb
+
+# For Python - check individual project documentation
 ```
 
 ## Modern Architecture Benefits
@@ -383,11 +407,11 @@ The current system provides multiple implementation options:
 - Native Semantic Kernel integration
 - ASP.NET Core Web API with Swagger documentation
 - Dependency injection and professional architecture
-- Azure AI Inference and GitHub Models support
+- Azure OpenAI integration with environment configuration
 - High-performance concurrent session management
 - Comprehensive error handling and logging
-- Multi-provider support with health checking
-- Professional logging and monitoring
+- Interactive testing with HTTP files and Jupyter notebooks
+- Clean configuration management with .env files
 
 ## Contributing
 

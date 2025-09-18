@@ -833,7 +833,7 @@ function App() {
           sessionId
         );
       } else {
-        const agentIds = selectedAgents.map(agent => agent.id);
+        const agentIds = selectedAgents.map(agent => agent.id || agent.name);
         response = await chatService.sendMessage(
           userMessage.content,
           sessionId,
@@ -922,10 +922,11 @@ function App() {
 
   const formatAgentOptions = (agents) => {
     return agents.map(agent => ({
-      value: agent.id,
+      value: agent.name, // Use name as the identifier
       label: agent.name,
       description: agent.description,
-      ...agent
+      ...agent,
+      id: agent.name // Add id field for backward compatibility
     }));
   };
 

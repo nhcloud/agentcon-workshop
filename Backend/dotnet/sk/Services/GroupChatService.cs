@@ -176,18 +176,18 @@ public class GroupChatService : IGroupChatService
                 throw new InvalidOperationException("No compatible agents found for Semantic Kernel group chat");
             }
 
-            // Create AgentGroupChat with proper termination strategy
+            // Create AgentGroupChat with smart termination strategy
 #pragma warning disable SKEXP0110 // Suppress experimental API warning
             var groupChat = new AgentGroupChat(chatAgents.ToArray())
             {
                 ExecutionSettings = new()
                 {
-                    TerminationStrategy = new CountBasedTerminationStrategy(request.MaxTurns * chatAgents.Count)
+                    TerminationStrategy = new SmartTerminationStrategy(request.MaxTurns, chatAgents.Count, _kernel, _logger)
                 }
             };
 #pragma warning restore SKEXP0110
 
-            _logger.LogInformation("Created Semantic Kernel AgentGroupChat with {AgentCount} agents", chatAgents.Count);
+            _logger.LogInformation("Created Semantic Kernel AgentGroupChat with {AgentCount} agents and smart termination", chatAgents.Count);
 
             // Add user message to the group chat
             groupChat.AddChatMessage(new ChatMessageContent(AuthorRole.User, request.Message));
@@ -224,7 +224,7 @@ public class GroupChatService : IGroupChatService
                 // Check termination conditions
                 if (iterationCount >= maxIterations)
                 {
-                    _logger.LogInformation("SK GroupChat terminated after {Iterations} iterations", iterationCount);
+                    _logger.LogInformation("SK GroupChat terminated after {Iterations} iterations (max reached)", iterationCount);
                     break;
                 }
             }
@@ -341,7 +341,7 @@ public class GroupChatService : IGroupChatService
 
             if (previousResponses.Any())
             {
-                context += $"?? **Previous Agent Contributions**:\n{string.Join("\n\n", previousResponses)}\n\n";
+                context += $"??? **Previous Agent Contributions**:\n{string.Join("\n\n", previousResponses)}\n\n";
                 context += $"?? **Your Role as {agentName}**:\n";
                 context += "- Acknowledge and reference relevant points from other agents\n";
                 context += "- Provide your unique perspective and expertise\n";
@@ -383,7 +383,7 @@ Analyze the following conversation between AI agents responding to a user's ques
 ?? **Unique Perspectives**: How each agent approached the question differently  
 ?? **Consensus & Disagreements**: Areas where agents aligned or differed
 ?? **Actionable Takeaways**: Practical next steps or recommendations
-? **Overall Quality**: How well the agents addressed the user's needs
+?? **Overall Quality**: How well the agents addressed the user's needs
 
 Format your summary clearly with the above sections. Be concise but thorough.";
 
@@ -421,7 +421,7 @@ Please provide a comprehensive summary following the requested format.");
 
             if (previousResponses.Any())
             {
-                context += $"?? **Other Agent Responses**:\n{string.Join("\n\n", previousResponses)}\n\n";
+                context += $"??? **Other Agent Responses**:\n{string.Join("\n\n", previousResponses)}\n\n";
                 context += $"?? **Your Role as {agentName}**:\n";
                 context += "- Provide your unique perspective and expertise\n";
                 context += "- Build upon or complement what others have said\n";
@@ -434,6 +434,7 @@ Please provide a comprehensive summary following the requested format.");
         else
         {
             context += $"?? You are the first agent to respond. Provide a comprehensive answer from your {agentName} perspective.";
+
         }
 
         return context;
@@ -441,7 +442,127 @@ Please provide a comprehensive summary following the requested format.");
 }
 
 /// <summary>
-/// Simple count-based termination strategy for AgentGroupChat
+/// Smart termination strategy that considers conversation quality and convergence
+/// </summary>
+#pragma warning disable SKEXP0110 // Suppress experimental API warning
+public class SmartTerminationStrategy : TerminationStrategy
+{
+    private readonly int _maxTurns;
+    private readonly int _agentCount;
+    private readonly Kernel _kernel;
+    private readonly int _minResponses;
+    private readonly ILogger? _logger;
+
+    public SmartTerminationStrategy(int maxTurns, int agentCount, Kernel kernel, ILogger? logger = null)
+    {
+        _maxTurns = maxTurns;
+        _agentCount = agentCount;
+        _kernel = kernel;
+        _minResponses = Math.Max(1, agentCount); // Ensure at least one response per agent
+        _logger = logger;
+    }
+
+    protected override async Task<bool> ShouldAgentTerminateAsync(Agent agent, IReadOnlyList<ChatMessageContent> history, CancellationToken cancellationToken = default)
+    {
+        // Count agent messages (exclude user messages)
+        var agentMessages = history.Where(m => m.AuthorName != "user" && !string.IsNullOrEmpty(m.AuthorName)).ToList();
+        var messageCount = agentMessages.Count;
+
+        _logger?.LogDebug("Smart termination check: {MessageCount} messages, min: {MinResponses}, max: {MaxIterations}", 
+            messageCount, _minResponses, _maxTurns * _agentCount);
+
+        // Never terminate before minimum responses
+        if (messageCount < _minResponses)
+        {
+            _logger?.LogDebug("Continuing: Not enough responses yet ({MessageCount} < {MinResponses})", messageCount, _minResponses);
+            return false;
+        }
+
+        // Hard limit: terminate if max iterations reached
+        var maxIterations = _maxTurns * _agentCount;
+        if (messageCount >= maxIterations)
+        {
+            _logger?.LogInformation("Terminating: Max iterations reached ({MessageCount} >= {MaxIterations})", messageCount, maxIterations);
+            return true;
+        }
+
+        // Early termination if we have at least one round and conversation seems complete
+        if (messageCount >= _agentCount)
+        {
+            try
+            {
+                // Analyze conversation quality and convergence
+                var shouldTerminate = await AnalyzeConversationConvergence(agentMessages, cancellationToken);
+                _logger?.LogInformation("Smart termination analysis result: {ShouldTerminate} after {MessageCount} messages", shouldTerminate, messageCount);
+                return shouldTerminate;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Smart termination analysis failed, continuing conversation");
+                // If analysis fails, continue with default behavior
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    private async Task<bool> AnalyzeConversationConvergence(IEnumerable<ChatMessageContent> agentMessages, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var messages = agentMessages.ToList();
+            if (messages.Count < 2) return false;
+
+            // Get recent messages for analysis
+            var recentMessages = messages.TakeLast(Math.Min(6, messages.Count)).ToList();
+            var conversationText = string.Join("\n", recentMessages.Select(m => $"{m.AuthorName}: {m.Content}"));
+
+            var systemPrompt = @"You are an expert conversation analyzer. Analyze this AI agent conversation and determine if it should continue or terminate.
+
+Consider these factors:
+1. Are agents providing NEW valuable information?
+2. Are agents repeating similar points?
+3. Has the original question been adequately addressed?
+4. Are agents adding unique perspectives or just rephrasing?
+5. Is the conversation converging toward a solution?
+
+Respond with ONLY 'CONTINUE' or 'TERMINATE' followed by a brief reason.
+
+Examples:
+- 'TERMINATE - Agents are repeating similar information without adding value'
+- 'CONTINUE - Each agent is providing unique valuable insights'
+- 'TERMINATE - Question has been comprehensively answered'
+- 'CONTINUE - Conversation is building toward a more complete solution'\";
+
+            var chatHistory = new ChatHistory();
+            chatHistory.AddSystemMessage(systemPrompt);
+            chatHistory.AddUserMessage($"Recent conversation:\n{conversationText}");
+
+            var chatCompletion = _kernel.GetRequiredService<IChatCompletionService>();
+            var result = await chatCompletion.GetChatMessageContentsAsync(chatHistory, cancellationToken: cancellationToken);
+            
+            var analysis = result.LastOrDefault()?.Content?.Trim() ?? "";
+            
+            // Parse the response
+            var shouldTerminate = analysis.StartsWith("TERMINATE", StringComparison.OrdinalIgnoreCase);
+            
+            _logger?.LogDebug("Conversation analysis: {Analysis}", analysis);
+            
+            return shouldTerminate;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to analyze conversation convergence");
+            // If analysis fails, default to continuing (conservative approach)
+            return false;
+        }
+    }
+}
+#pragma warning restore SKEXP0110
+
+/// <summary>
+/// Simple count-based termination strategy for AgentGroupChat (fallback)
 /// </summary>
 #pragma warning disable SKEXP0110 // Suppress experimental API warning
 public class CountBasedTerminationStrategy : TerminationStrategy

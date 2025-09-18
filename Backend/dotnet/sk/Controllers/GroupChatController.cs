@@ -27,7 +27,7 @@ public class GroupChatController : ControllerBase
 
     /// <summary>
     /// Start a group chat with multiple agents using Semantic Kernel AgentGroupChat
-    /// Frontend payload: { message, session_id?, config?, summarize?, mode?, agents? }
+    /// Frontend payload: { message, session_id?, config?, summarize?, mode?, agents?, max_turns? }
     /// Agents can be null - will auto-select available agents
     /// </summary>
     [HttpPost("group-chat")]
@@ -42,10 +42,19 @@ public class GroupChatController : ControllerBase
                 return BadRequest(new { detail = "Message is required" });
             }
 
-            _logger.LogInformation("Group chat request: Message='{Message}', Agents={Agents}, SessionId='{SessionId}'", 
+            // Validate and adjust max_turns for better performance
+            if (request.MaxTurns <= 0) request.MaxTurns = 2;
+            if (request.MaxTurns > 5) 
+            {
+                _logger.LogWarning("Max turns capped at 5 for performance. Requested: {MaxTurns}", request.MaxTurns);
+                request.MaxTurns = 5;
+            }
+
+            _logger.LogInformation("Group chat request: Message='{Message}', Agents={Agents}, SessionId='{SessionId}', MaxTurns={MaxTurns}", 
                 request.Message, 
                 request.Agents != null ? $"[{string.Join(", ", request.Agents)}]" : "null", 
-                request.SessionId ?? "null");
+                request.SessionId ?? "null",
+                request.MaxTurns);
 
             // Auto-select agents if none provided
             if (request.Agents == null || !request.Agents.Any())
@@ -66,11 +75,22 @@ public class GroupChatController : ControllerBase
                 _logger.LogInformation("Using provided agents: {Agents}", string.Join(", ", request.Agents));
             }
 
+            // Adjust max_turns based on agent count for optimal performance
+            var optimalMaxTurns = Math.Max(1, Math.Min(request.MaxTurns, 
+                request.Agents.Count > 3 ? 1 : request.Agents.Count > 2 ? 2 : 3));
+            
+            if (optimalMaxTurns != request.MaxTurns)
+            {
+                _logger.LogInformation("Adjusting max_turns from {Original} to {Optimal} based on {AgentCount} agents", 
+                    request.MaxTurns, optimalMaxTurns, request.Agents.Count);
+                request.MaxTurns = optimalMaxTurns;
+            }
+
             // Always use Semantic Kernel AgentGroupChat for group chat
             request.UseSemanticKernelGroupChat = true;
 
-            _logger.LogInformation("Starting Semantic Kernel AgentGroupChat with {AgentCount} agents: {Agents}", 
-                request.Agents.Count, string.Join(", ", request.Agents));
+            _logger.LogInformation("Starting Semantic Kernel AgentGroupChat with {AgentCount} agents: {Agents}, MaxTurns: {MaxTurns}", 
+                request.Agents.Count, string.Join(", ", request.Agents), request.MaxTurns);
 
             GroupChatResponse response;
             try
@@ -108,11 +128,14 @@ public class GroupChatController : ControllerBase
                     group_chat_type = response.GroupChatType,
                     agent_count = response.AgentCount,
                     agents_used = request.Agents,
-                    semantic_kernel_groupchat = true
+                    max_turns_used = request.MaxTurns,
+                    semantic_kernel_groupchat = true,
+                    early_termination = response.TotalTurns < (request.MaxTurns * request.Agents.Count)
                 }
             };
 
-            _logger.LogInformation("Semantic Kernel group chat completed successfully with {ResponseCount} responses", responseMessages.Count);
+            _logger.LogInformation("Semantic Kernel group chat completed successfully with {ResponseCount} responses, early termination: {EarlyTermination}", 
+                responseMessages.Count, response.TotalTurns < (request.MaxTurns * request.Agents.Count));
             return Ok(result);
         }
         catch (Exception ex)
