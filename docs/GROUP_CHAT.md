@@ -29,21 +29,21 @@ This directory contains complete group chat implementations for both **Semantic 
 ## 📁 Directory Structure
 
 ```
-python_semantic_kernel/                          # Semantic Kernel Implementation
-├── agents/
-│   └── agent_group_chat.py        # SemanticKernelAgentGroupChat
-├── group_chat_config.py           # Configuration loader
-├── example_template_usage.py      # Usage examples
-├── config.yml                     # Templates and settings
-└── main.py                        # FastAPI with group chat endpoints
-
-langchain/                          # LangChain Implementation  
-├── agents/
-│   └── agent_group_chat.py        # LangChainAgentGroupChat
-├── group_chat_config.py           # Configuration loader
-├── example_template_usage.py      # Usage examples  
-├── config.yml                     # Templates and settings
-└── main.py                        # FastAPI with group chat endpoints
+Backend/python/
+├── sk/                             # Semantic Kernel Implementation
+│   ├── agents/
+│   │   └── agent_group_chat.py     # SemanticKernelAgentGroupChat
+│   ├── group_chat_config.py        # Configuration loader
+│   ├── example_template_usage.py   # Usage examples
+│   ├── config.yml                  # Templates and settings
+│   └── main.py                     # FastAPI with group chat endpoints
+└── langchain/                      # LangChain Implementation  
+    ├── agents/
+    │   └── agent_group_chat.py     # LangChainAgentGroupChat
+    ├── group_chat_config.py        # Configuration loader
+    ├── example_template_usage.py   # Usage examples  
+    ├── config.yml                  # Templates and settings
+    └── main.py                     # FastAPI with group chat endpoints
 ```
 
 ## 🛠️ Configuration Templates
@@ -176,22 +176,22 @@ cp env.template .env
 ### 2. Run Examples
 ```bash
 # Semantic Kernel examples
-cd semantic_kernel
+cd Backend/python/sk
 python example_template_usage.py
 
 # LangChain examples  
-cd langchain
+cd Backend/python/langchain
 python example_template_usage.py
 ```
 
 ### 3. Start Web API
 ```bash
 # Semantic Kernel API (port 8001)
-cd semantic_kernel
+cd Backend/python/sk
 python main.py
 
 # LangChain API (port 8000)
-cd langchain  
+cd Backend/python/langchain  
 python main.py
 ```
 
