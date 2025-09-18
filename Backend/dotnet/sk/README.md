@@ -10,18 +10,13 @@ A comprehensive .NET 9 implementation of Semantic Kernel agents that matches the
 - Azure OpenAI resource
 - (Optional) Azure AI Foundry project
 
-### Configuration Options
+### Configuration
 
-You can configure this workshop using either environment variables (recommended) or appsettings.json files.
+This workshop uses environment variables loaded from a `.env` file for configuration, with fallback to `appsettings.json`.
 
-#### Option 1: Environment Variables (Recommended)
+#### Setup Configuration
 
-1. Copy the environment template:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. Edit `.env` file with your Azure credentials:
+1. Edit the existing `.env` file with your Azure credentials:
    ```bash
    # Azure OpenAI Configuration
    AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com
@@ -38,9 +33,9 @@ You can configure this workshop using either environment variables (recommended)
    FRONTEND_URL=http://localhost:3001
    ```
 
-#### Option 2: appsettings.json
+#### Alternative: appsettings.json
 
-Update `appsettings.json` or `appsettings.Development.json`:
+If you prefer, you can also configure via `appsettings.json` or `appsettings.Development.json`:
 
 ```json
 {
@@ -109,8 +104,8 @@ This .NET implementation mirrors the Python workshop progression:
 
 ### Configuration
 - **AzureAIConfig**: Centralized Azure configuration
-- Environment variable support
-- Development/Production configurations
+- Environment variable support via .env file
+- Development/Production configurations via appsettings.json
 
 ### Controllers
 - **AgentsController**: Individual agent endpoints
@@ -245,7 +240,7 @@ sk/
 │   └── AzureAIConfig.cs       # Azure AI settings
 ├── Program.cs                  # Application entry point
 ├── appsettings.json           # Configuration settings
-├── .env.example               # Environment template
+├── .env                       # Environment variables (actual config)
 └── README.md                  # This file
 ```
 
@@ -286,9 +281,9 @@ _agentFactories["my_custom_agent"] = () => new MyCustomAgent(_kernel,
 
 ### Common Issues
 
-1. **Configuration not loading**: Ensure .env file is in the project root
-2. **API key errors**: Verify Azure OpenAI credentials
-3. **Port conflicts**: Set PORT environment variable
+1. **Configuration not loading**: Ensure .env file has proper values
+2. **API key errors**: Verify Azure OpenAI credentials in .env file
+3. **Port conflicts**: Set PORT environment variable in .env
 4. **Model access errors**: Check Azure resource permissions
 
 ### Debug Configuration
