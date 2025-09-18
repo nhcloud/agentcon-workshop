@@ -2,6 +2,7 @@ using DotNetSemanticKernel.Models;
 using DotNetSemanticKernel.Agents;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
+using Microsoft.SemanticKernel.Agents.Chat;
 using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace DotNetSemanticKernel.Services;
@@ -46,7 +47,8 @@ public class GroupChatService : IGroupChatService
             Content = request.Message,
             Agent = "user",
             Timestamp = DateTime.UtcNow,
-            Turn = 0
+            Turn = 0,
+            MessageId = Guid.NewGuid().ToString()
         };
         messages.Add(userMessage);
         await _sessionManager.AddMessageToSessionAsync(sessionId, userMessage);
@@ -78,7 +80,8 @@ public class GroupChatService : IGroupChatService
                         Content = response,
                         Agent = agentName,
                         Timestamp = DateTime.UtcNow,
-                        Turn = currentTurn
+                        Turn = currentTurn,
+                        MessageId = Guid.NewGuid().ToString()
                     };
 
                     messages.Add(agentMessage);
@@ -103,7 +106,9 @@ public class GroupChatService : IGroupChatService
                 Messages = messages,
                 SessionId = sessionId,
                 TotalTurns = currentTurn - 1,
-                Summary = summary
+                Summary = summary,
+                GroupChatType = "Standard Group Chat",
+                AgentCount = request.Agents.Count
             };
         }
         catch (Exception ex)
@@ -115,7 +120,7 @@ public class GroupChatService : IGroupChatService
 
     /// <summary>
     /// Advanced group chat using Semantic Kernel's AgentGroupChat
-    /// This matches the Python Semantic Kernel implementation patterns
+    /// This uses the native SK AgentGroupChat functionality
     /// </summary>
     public async Task<GroupChatResponse> StartSemanticKernelGroupChatAsync(GroupChatRequest request)
     {
@@ -124,6 +129,18 @@ public class GroupChatService : IGroupChatService
 
         try
         {
+            // Add initial user message
+            var userMessage = new GroupChatMessage
+            {
+                Content = request.Message,
+                Agent = "user",
+                Timestamp = DateTime.UtcNow,
+                Turn = 0,
+                MessageId = Guid.NewGuid().ToString()
+            };
+            messages.Add(userMessage);
+            await _sessionManager.AddMessageToSessionAsync(sessionId, userMessage);
+
             // Create agents for the group chat
             var chatAgents = new List<ChatCompletionAgent>();
             var agentMap = new Dictionary<string, string>();
@@ -135,10 +152,22 @@ public class GroupChatService : IGroupChatService
                 {
                     chatAgents.Add(baseAgent._chatAgent);
                     agentMap[baseAgent._chatAgent.Id] = agentName;
+                    _logger.LogInformation("Added agent {AgentName} to Semantic Kernel GroupChat", agentName);
                 }
                 else
                 {
-                    _logger.LogWarning("Agent {AgentName} not compatible with SK GroupChat", agentName);
+                    _logger.LogWarning("Agent {AgentName} not compatible with SK GroupChat, creating enhanced version", agentName);
+                    
+                    // Create a compatible ChatCompletionAgent for non-BaseAgent types
+                    var compatibleAgent = new ChatCompletionAgent()
+                    {
+                        Name = agentName,
+                        Instructions = agent?.Instructions ?? $"You are {agentName}, providing specialized assistance.",
+                        Kernel = _kernel,
+                        Arguments = new KernelArguments()
+                    };
+                    chatAgents.Add(compatibleAgent);
+                    agentMap[compatibleAgent.Id] = agentName;
                 }
             }
 
@@ -147,30 +176,86 @@ public class GroupChatService : IGroupChatService
                 throw new InvalidOperationException("No compatible agents found for Semantic Kernel group chat");
             }
 
-            // For now, fall back to standard group chat since AgentGroupChat is experimental
-            // In future SK versions, this would use:
-            // var groupChat = new AgentGroupChat(chatAgents.ToArray())
-            _logger.LogInformation("AgentGroupChat is experimental, using enhanced standard group chat");
-            
-            return await StartEnhancedGroupChatAsync(request, chatAgents, agentMap);
+            // Create AgentGroupChat with proper termination strategy
+#pragma warning disable SKEXP0110 // Suppress experimental API warning
+            var groupChat = new AgentGroupChat(chatAgents.ToArray())
+            {
+                ExecutionSettings = new()
+                {
+                    TerminationStrategy = new CountBasedTerminationStrategy(request.MaxTurns * chatAgents.Count)
+                }
+            };
+#pragma warning restore SKEXP0110
+
+            _logger.LogInformation("Created Semantic Kernel AgentGroupChat with {AgentCount} agents", chatAgents.Count);
+
+            // Add user message to the group chat
+            groupChat.AddChatMessage(new ChatMessageContent(AuthorRole.User, request.Message));
+
+            var currentTurn = 1;
+            var iterationCount = 0;
+            var maxIterations = request.MaxTurns * chatAgents.Count;
+
+            // Process the group chat
+            await foreach (var chatMessage in groupChat.InvokeAsync())
+            {
+                iterationCount++;
+                
+                // Map the agent ID back to our agent name
+                var agentId = chatMessage.AuthorName ?? "unknown";
+                var agentName = agentMap.ContainsKey(agentId) ? agentMap[agentId] : agentId;
+
+                var agentMessage = new GroupChatMessage
+                {
+                    Content = chatMessage.Content ?? "",
+                    Agent = agentName,
+                    Timestamp = DateTime.UtcNow,
+                    Turn = currentTurn,
+                    AgentType = "Semantic Kernel AgentGroupChat",
+                    MessageId = Guid.NewGuid().ToString()
+                };
+
+                messages.Add(agentMessage);
+                await _sessionManager.AddMessageToSessionAsync(sessionId, agentMessage);
+                
+                _logger.LogInformation("SK GroupChat: Agent {AgentName} responded in iteration {Iteration}", agentName, iterationCount);
+                currentTurn++;
+
+                // Check termination conditions
+                if (iterationCount >= maxIterations)
+                {
+                    _logger.LogInformation("SK GroupChat terminated after {Iterations} iterations", iterationCount);
+                    break;
+                }
+            }
+
+            // Generate summary
+            var summary = await SummarizeConversationAsync(messages);
+
+            return new GroupChatResponse
+            {
+                Messages = messages,
+                SessionId = sessionId,
+                TotalTurns = currentTurn - 1,
+                Summary = summary,
+                GroupChatType = "Semantic Kernel AgentGroupChat",
+                AgentCount = chatAgents.Count
+            };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during SK group chat for session {SessionId}", sessionId);
             
-            // Fallback to standard group chat
-            _logger.LogInformation("Falling back to standard group chat implementation");
-            return await StartGroupChatAsync(request);
+            // Fallback to enhanced group chat
+            _logger.LogInformation("Falling back to enhanced group chat implementation");
+            return await StartEnhancedGroupChatAsync(request);
         }
     }
 
     /// <summary>
-    /// Enhanced group chat that simulates AgentGroupChat behavior
+    /// Enhanced group chat that simulates AgentGroupChat behavior when SK GroupChat fails
     /// </summary>
-    private async Task<GroupChatResponse> StartEnhancedGroupChatAsync(
-        GroupChatRequest request, 
-        List<ChatCompletionAgent> chatAgents, 
-        Dictionary<string, string> agentMap)
+    private async Task<GroupChatResponse> StartEnhancedGroupChatAsync(GroupChatRequest request)
     {
         var sessionId = request.SessionId ?? await _sessionManager.CreateSessionAsync();
         var messages = new List<GroupChatMessage>();
@@ -181,12 +266,13 @@ public class GroupChatService : IGroupChatService
             Content = request.Message,
             Agent = "user",
             Timestamp = DateTime.UtcNow,
-            Turn = 0
+            Turn = 0,
+            MessageId = Guid.NewGuid().ToString()
         };
         messages.Add(userMessage);
 
         // Create enhanced context for group interaction
-        var conversationContext = $"You are participating in a group discussion with {chatAgents.Count} other AI agents. ";
+        var conversationContext = $"You are participating in a group discussion with {request.Agents.Count} other AI agents. ";
         conversationContext += $"Each agent brings unique expertise. Coordinate with others and build upon their insights. ";
         conversationContext += $"Original question: {request.Message}";
 
@@ -194,34 +280,35 @@ public class GroupChatService : IGroupChatService
         var currentTurn = 1;
         for (int turn = 1; turn <= request.MaxTurns; turn++)
         {
-            foreach (var chatAgent in chatAgents)
+            foreach (var agentName in request.Agents)
             {
-                if (agentMap.TryGetValue(chatAgent.Id, out var agentName))
+                var agent = await _agentService.GetAgentAsync(agentName);
+                if (agent == null)
                 {
-                    var agent = await _agentService.GetAgentAsync(agentName);
-                    if (agent == null) continue;
-
-                    // Build context with previous agent responses
-                    var agentContext = BuildAdvancedAgentContext(messages, agentName, request.Message, conversationContext);
-                    
-                    var response = await agent.RespondAsync(request.Message, agentContext);
-                    
-                    var agentMessage = new GroupChatMessage
-                    {
-                        Content = response,
-                        Agent = agentName,
-                        Timestamp = DateTime.UtcNow,
-                        Turn = currentTurn,
-                        AgentType = "Enhanced",
-                        MessageId = Guid.NewGuid().ToString()
-                    };
-
-                    messages.Add(agentMessage);
-                    await _sessionManager.AddMessageToSessionAsync(sessionId, agentMessage);
-                    
-                    _logger.LogInformation("Enhanced GroupChat: Agent {AgentName} responded in turn {Turn}", agentName, currentTurn);
-                    currentTurn++;
+                    _logger.LogWarning("Agent {AgentName} not found in enhanced group chat", agentName);
+                    continue;
                 }
+
+                // Build context with previous agent responses
+                var agentContext = BuildAdvancedAgentContext(messages, agentName, request.Message, conversationContext);
+                
+                var response = await agent.RespondAsync(request.Message, agentContext);
+                
+                var agentMessage = new GroupChatMessage
+                {
+                    Content = response,
+                    Agent = agentName,
+                    Timestamp = DateTime.UtcNow,
+                    Turn = currentTurn,
+                    AgentType = "Enhanced",
+                    MessageId = Guid.NewGuid().ToString()
+                };
+
+                messages.Add(agentMessage);
+                await _sessionManager.AddMessageToSessionAsync(sessionId, agentMessage);
+                
+                _logger.LogInformation("Enhanced GroupChat: Agent {AgentName} responded in turn {Turn}", agentName, currentTurn);
+                currentTurn++;
             }
         }
 
@@ -234,8 +321,8 @@ public class GroupChatService : IGroupChatService
             SessionId = sessionId,
             TotalTurns = currentTurn - 1,
             Summary = summary,
-            GroupChatType = "Enhanced Semantic Kernel GroupChat Simulation",
-            AgentCount = chatAgents.Count
+            GroupChatType = "Enhanced Group Chat (SK Fallback)",
+            AgentCount = request.Agents.Count
         };
     }
 
@@ -254,7 +341,7 @@ public class GroupChatService : IGroupChatService
 
             if (previousResponses.Any())
             {
-                context += $"??? **Previous Agent Contributions**:\n{string.Join("\n\n", previousResponses)}\n\n";
+                context += $"?? **Previous Agent Contributions**:\n{string.Join("\n\n", previousResponses)}\n\n";
                 context += $"?? **Your Role as {agentName}**:\n";
                 context += "- Acknowledge and reference relevant points from other agents\n";
                 context += "- Provide your unique perspective and expertise\n";
@@ -334,7 +421,7 @@ Please provide a comprehensive summary following the requested format.");
 
             if (previousResponses.Any())
             {
-                context += $"??? **Other Agent Responses**:\n{string.Join("\n\n", previousResponses)}\n\n";
+                context += $"?? **Other Agent Responses**:\n{string.Join("\n\n", previousResponses)}\n\n";
                 context += $"?? **Your Role as {agentName}**:\n";
                 context += "- Provide your unique perspective and expertise\n";
                 context += "- Build upon or complement what others have said\n";
@@ -352,3 +439,25 @@ Please provide a comprehensive summary following the requested format.");
         return context;
     }
 }
+
+/// <summary>
+/// Simple count-based termination strategy for AgentGroupChat
+/// </summary>
+#pragma warning disable SKEXP0110 // Suppress experimental API warning
+public class CountBasedTerminationStrategy : TerminationStrategy
+{
+    private readonly int _maxIterations;
+
+    public CountBasedTerminationStrategy(int maxIterations)
+    {
+        _maxIterations = maxIterations;
+    }
+
+    protected override Task<bool> ShouldAgentTerminateAsync(Agent agent, IReadOnlyList<ChatMessageContent> history, CancellationToken cancellationToken = default)
+    {
+        // Count agent messages (exclude user messages)
+        var agentMessages = history.Count(m => m.AuthorName != "user" && !string.IsNullOrEmpty(m.AuthorName));
+        return Task.FromResult(agentMessages >= _maxIterations);
+    }
+}
+#pragma warning restore SKEXP0110

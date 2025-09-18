@@ -11,7 +11,9 @@ public interface IAgent
     string Description { get; }
     string Instructions { get; }
     Task<string> RespondAsync(string message, string? context = null);
+    Task<string> RespondAsync(string message, List<GroupChatMessage>? conversationHistory = null, string? context = null);
     Task<ChatResponse> ChatAsync(ChatRequest request);
+    Task<ChatResponse> ChatWithHistoryAsync(ChatRequest request, List<GroupChatMessage>? conversationHistory = null);
     Task InitializeAsync();
 }
 
@@ -55,6 +57,11 @@ public abstract class BaseAgent : IAgent
 
     public virtual async Task<string> RespondAsync(string message, string? context = null)
     {
+        return await RespondAsync(message, null, context);
+    }
+
+    public virtual async Task<string> RespondAsync(string message, List<GroupChatMessage>? conversationHistory = null, string? context = null)
+    {
         if (_chatAgent == null)
         {
             await InitializeAsync();
@@ -62,7 +69,7 @@ public abstract class BaseAgent : IAgent
 
         try
         {
-            // Create chat history similar to Python implementation
+            // Create chat history and include conversation history if provided
             var chatHistory = new ChatHistory();
             
             // Add system message with instructions
@@ -73,7 +80,24 @@ public abstract class BaseAgent : IAgent
             }
             chatHistory.AddSystemMessage(systemMessage);
             
-            // Add user message
+            // Add conversation history if provided
+            if (conversationHistory != null && conversationHistory.Any())
+            {
+                foreach (var historyMessage in conversationHistory.OrderBy(m => m.Timestamp))
+                {
+                    if (historyMessage.Agent == "user")
+                    {
+                        chatHistory.AddUserMessage(historyMessage.Content);
+                    }
+                    else if (historyMessage.Agent == Name)
+                    {
+                        chatHistory.AddAssistantMessage(historyMessage.Content);
+                    }
+                    // Skip messages from other agents in group chats to avoid confusion
+                }
+            }
+            
+            // Add current user message
             chatHistory.AddUserMessage(message);
 
             // Get response from agent
@@ -95,10 +119,15 @@ public abstract class BaseAgent : IAgent
 
     public virtual async Task<ChatResponse> ChatAsync(ChatRequest request)
     {
+        return await ChatWithHistoryAsync(request, null);
+    }
+
+    public virtual async Task<ChatResponse> ChatWithHistoryAsync(ChatRequest request, List<GroupChatMessage>? conversationHistory = null)
+    {
         var sessionId = request.SessionId ?? Guid.NewGuid().ToString();
         var startTime = DateTime.UtcNow;
         
-        var content = await RespondAsync(request.Message, request.Context);
+        var content = await RespondAsync(request.Message, conversationHistory, request.Context);
         var endTime = DateTime.UtcNow;
 
         return new ChatResponse
@@ -121,6 +150,54 @@ public abstract class BaseAgent : IAgent
     {
         // Simple token estimation (roughly 4 characters per token)
         return Math.Max(1, text.Length / 4);
+    }
+}
+
+/// <summary>
+/// Azure OpenAI Agent - Standard agent that uses Azure OpenAI
+/// </summary>
+public class AzureOpenAIAgent : BaseAgent
+{
+    private readonly string _modelDeployment;
+
+    public override string Name { get; }
+    public override string Description { get; }
+    public override string Instructions { get; }
+
+    public AzureOpenAIAgent(
+        string name,
+        string description,
+        string instructions,
+        string modelDeployment,
+        Kernel kernel,
+        ILogger<AzureOpenAIAgent> logger)
+        : base(kernel, logger)
+    {
+        Name = name;
+        Description = description;
+        Instructions = instructions;
+        _modelDeployment = modelDeployment;
+    }
+
+    public override async Task InitializeAsync()
+    {
+        try
+        {
+            _chatAgent = new ChatCompletionAgent()
+            {
+                Name = Name,
+                Instructions = $"{Instructions}\n\nPowered by Azure OpenAI ({_modelDeployment})",
+                Kernel = _kernel,
+                Arguments = new KernelArguments()
+            };
+            
+            _logger.LogInformation("Initialized Azure OpenAI agent {AgentName} with model {Model}", Name, _modelDeployment);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to initialize Azure OpenAI agent {AgentName}", Name);
+            throw;
+        }
     }
 }
 
@@ -163,7 +240,7 @@ public class AzureAIFoundryAgent : BaseAgent
             _chatAgent = new ChatCompletionAgent()
             {
                 Name = Name,
-                Instructions = $"{Instructions}\n\nAgent ID: {_agentId}\nProject: {_projectEndpoint}",
+                Instructions = $"{Instructions}\n\nAzure AI Foundry Agent ID: {_agentId}\nProject: {_projectEndpoint}",
                 Kernel = _kernel,
                 Arguments = new KernelArguments()
             };
@@ -211,5 +288,110 @@ public class AzureAIFoundryAgent : BaseAgent
             _logger.LogError(ex, "Error in Azure AI Foundry agent {AgentName} responding to message", Name);
             return $"Azure AI Foundry agent error: {ex.Message}";
         }
+    }
+
+    public override async Task<string> RespondAsync(string message, List<GroupChatMessage>? conversationHistory = null, string? context = null)
+    {
+        if (_chatAgent == null)
+        {
+            await InitializeAsync();
+        }
+
+        try
+        {
+            // Create chat history and include conversation history if provided
+            var chatHistory = new ChatHistory();
+            
+            // Enhanced context for Azure AI Foundry agents
+            var enhancedContext = $"Azure AI Foundry Agent: {Name} (ID: {_agentId})";
+            if (!string.IsNullOrEmpty(context))
+            {
+                enhancedContext += $"\nContext: {context}";
+            }
+
+            chatHistory.AddSystemMessage($"{Instructions}\n\n{enhancedContext}");
+
+            // Add conversation history if provided
+            if (conversationHistory != null && conversationHistory.Any())
+            {
+                foreach (var historyMessage in conversationHistory.OrderBy(m => m.Timestamp))
+                {
+                    if (historyMessage.Agent == "user")
+                    {
+                        chatHistory.AddUserMessage(historyMessage.Content);
+                    }
+                    else if (historyMessage.Agent == Name)
+                    {
+                        chatHistory.AddAssistantMessage(historyMessage.Content);
+                    }
+                    // Skip messages from other agents in group chats to avoid confusion
+                }
+            }
+
+            // Add current user message
+            chatHistory.AddUserMessage(message);
+
+            var responses = new List<ChatMessageContent>();
+            await foreach (var content in _chatAgent!.InvokeAsync(chatHistory))
+            {
+                responses.Add(content);
+            }
+
+            var lastResponse = responses.LastOrDefault();
+            return lastResponse?.Content ?? "I apologize, but I couldn't generate a response from the Azure AI Foundry agent.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in Azure AI Foundry agent {AgentName} responding to message", Name);
+            return $"Azure AI Foundry agent error: {ex.Message}";
+        }
+    }
+
+    public override async Task<ChatResponse> ChatAsync(ChatRequest request)
+    {
+        var sessionId = request.SessionId ?? Guid.NewGuid().ToString();
+        var startTime = DateTime.UtcNow;
+        
+        var content = await RespondAsync(request.Message, request.Context);
+        var endTime = DateTime.UtcNow;
+
+        return new ChatResponse
+        {
+            Content = content,
+            Agent = Name,
+            SessionId = sessionId,
+            Timestamp = endTime,
+            Usage = new UsageInfo
+            {
+                PromptTokens = EstimateTokens(request.Message),
+                CompletionTokens = EstimateTokens(content),
+                TotalTokens = EstimateTokens(request.Message) + EstimateTokens(content)
+            },
+            ProcessingTimeMs = (int)(endTime - startTime).TotalMilliseconds
+        };
+    }
+
+    public override async Task<ChatResponse> ChatWithHistoryAsync(ChatRequest request, List<GroupChatMessage>? conversationHistory = null)
+    {
+        var sessionId = request.SessionId ?? Guid.NewGuid().ToString();
+        var startTime = DateTime.UtcNow;
+        
+        var content = await RespondAsync(request.Message, conversationHistory, request.Context);
+        var endTime = DateTime.UtcNow;
+
+        return new ChatResponse
+        {
+            Content = content,
+            Agent = Name,
+            SessionId = sessionId,
+            Timestamp = endTime,
+            Usage = new UsageInfo
+            {
+                PromptTokens = EstimateTokens(request.Message),
+                CompletionTokens = EstimateTokens(content),
+                TotalTokens = EstimateTokens(request.Message) + EstimateTokens(content)
+            },
+            ProcessingTimeMs = (int)(endTime - startTime).TotalMilliseconds
+        };
     }
 }

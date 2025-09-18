@@ -80,7 +80,7 @@ public class GroupChatRequest
     public string Message { get; set; } = string.Empty;
 
     [JsonPropertyName("agents")]
-    public List<string> Agents { get; set; } = new();
+    public List<string>? Agents { get; set; } = null;
 
     [JsonPropertyName("session_id")]
     public string? SessionId { get; set; }
@@ -93,6 +93,15 @@ public class GroupChatRequest
 
     [JsonPropertyName("context")]
     public string? Context { get; set; }
+
+    [JsonPropertyName("config")]
+    public object? Config { get; set; }
+
+    [JsonPropertyName("summarize")]
+    public bool Summarize { get; set; } = true;
+
+    [JsonPropertyName("mode")]
+    public string Mode { get; set; } = "sequential";
 }
 
 public class GroupChatResponse

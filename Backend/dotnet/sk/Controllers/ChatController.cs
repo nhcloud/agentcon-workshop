@@ -5,118 +5,114 @@ using Microsoft.AspNetCore.Mvc;
 namespace DotNetSemanticKernel.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 [Produces("application/json")]
 public class ChatController : ControllerBase
 {
     private readonly IAgentService _agentService;
     private readonly ISessionManager _sessionManager;
+    private readonly IGroupChatService _groupChatService;
     private readonly ILogger<ChatController> _logger;
 
     public ChatController(
         IAgentService agentService, 
         ISessionManager sessionManager,
+        IGroupChatService groupChatService,
         ILogger<ChatController> logger)
     {
         _agentService = agentService;
         _sessionManager = sessionManager;
+        _groupChatService = groupChatService;
         _logger = logger;
     }
 
     /// <summary>
-    /// Chat with a specific agent
-    /// </summary>
-    [HttpPost("{agentName}")]
-    public async Task<ActionResult<ChatResponse>> ChatWithAgent(string agentName, [FromBody] ChatRequest request)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(request.Message))
-            {
-                return BadRequest(new { error = "Message is required" });
-            }
-
-            if (string.IsNullOrWhiteSpace(agentName))
-            {
-                return BadRequest(new { error = "Agent name is required" });
-            }
-
-            _logger.LogInformation("Chat request for agent {AgentName}: {Message}", agentName, request.Message);
-
-            var response = await _agentService.ChatWithAgentAsync(agentName, request);
-            
-            // Store the conversation in session if session_id is provided
-            if (!string.IsNullOrEmpty(request.SessionId))
-            {
-                var userMessage = new GroupChatMessage
-                {
-                    Content = request.Message,
-                    Agent = "user",
-                    Timestamp = DateTime.UtcNow,
-                    Turn = 0
-                };
-                
-                var agentMessage = new GroupChatMessage
-                {
-                    Content = response.Content,
-                    Agent = response.Agent,
-                    Timestamp = response.Timestamp,
-                    Turn = 1
-                };
-
-                await _sessionManager.AddMessageToSessionAsync(request.SessionId, userMessage);
-                await _sessionManager.AddMessageToSessionAsync(request.SessionId, agentMessage);
-            }
-
-            return Ok(response);
-        }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning(ex, "Agent not found: {AgentName}", agentName);
-            
-            var availableAgents = await _agentService.GetAvailableAgentsAsync();
-            return NotFound(new { 
-                error = ex.Message,
-                agent_requested = agentName,
-                available_agents = availableAgents.Select(a => a.Name).ToList()
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in chat with agent {AgentName}", agentName);
-            return StatusCode(500, new { error = "Internal server error during chat" });
-        }
-    }
-
-    /// <summary>
-    /// Generic chat endpoint that routes to the specified agent or default agent
+    /// Process a chat message - handles both single and multiple agents
+    /// Frontend payload: { message, session_id?, agents? }
     /// </summary>
     [HttpPost]
-    public async Task<ActionResult<ChatResponse>> Chat([FromBody] ChatRequest request)
+    public async Task<ActionResult<object>> Chat([FromBody] ChatRequest request)
     {
         try
         {
             if (string.IsNullOrWhiteSpace(request.Message))
             {
-                return BadRequest(new { error = "Message is required" });
+                return BadRequest(new { detail = "Message is required" });
             }
 
-            var agentName = request.Agent ?? "generic"; // Default to generic agent
-            
-            _logger.LogInformation("Generic chat request routed to agent {AgentName}: {Message}", agentName, request.Message);
+            // Generate session ID if not provided (matching frontend expectation)
+            var sessionId = request.SessionId ?? Guid.NewGuid().ToString();
 
-            var response = await _agentService.ChatWithAgentAsync(agentName, request);
-            
-            // Store the conversation in session if session_id is provided or create new session
-            var sessionId = request.SessionId ?? await _sessionManager.CreateSessionAsync();
-            response.SessionId = sessionId;
+            // Retrieve conversation history for the session
+            List<GroupChatMessage> conversationHistory = new();
+            if (!string.IsNullOrEmpty(request.SessionId))
+            {
+                try
+                {
+                    conversationHistory = await _sessionManager.GetSessionHistoryAsync(request.SessionId);
+                    _logger.LogInformation("Retrieved {MessageCount} messages from session {SessionId}", conversationHistory.Count, request.SessionId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not retrieve session history for {SessionId}, starting fresh", request.SessionId);
+                    conversationHistory = new List<GroupChatMessage>();
+                }
+            }
 
+            // Check if multiple agents were specified (frontend sends agents array)
+            if (request.Agents != null && request.Agents.Count > 1)
+            {
+                // Route to group chat for multiple agents
+                var groupRequest = new GroupChatRequest
+                {
+                    Message = request.Message,
+                    Agents = request.Agents,
+                    SessionId = sessionId,
+                    MaxTurns = 1,
+                    UseSemanticKernelGroupChat = false
+                };
+
+                var groupResponse = await _groupChatService.StartGroupChatAsync(groupRequest);
+                var responseMessages = groupResponse.Messages?.Where(m => m.Agent != "user").ToList() ?? new List<GroupChatMessage>();
+                var lastMessage = responseMessages.LastOrDefault();
+
+                // Return frontend-compatible group chat response
+                return Ok(new
+                {
+                    content = lastMessage?.Content ?? "No response generated",
+                    agent = lastMessage?.Agent ?? "system",
+                    session_id = sessionId,
+                    timestamp = DateTime.UtcNow.ToString("O"),
+                    metadata = new { 
+                        total_agents = request.Agents.Count,
+                        group_chat = true,
+                        all_responses = responseMessages.Select(m => new { agent = m.Agent, content = m.Content }).ToList(),
+                        conversation_length = conversationHistory.Count
+                    }
+                });
+            }
+
+            // Single agent handling with conversation history
+            var agentName = request.Agents?.FirstOrDefault() ?? request.Agent ?? "generic_agent";
+            
+            _logger.LogInformation("Chat request for agent {AgentName} with {HistoryCount} previous messages: {Message}", 
+                agentName, conversationHistory.Count, request.Message);
+
+            // Filter conversation history to only include relevant messages for this agent
+            var relevantHistory = conversationHistory
+                .Where(m => m.Agent == "user" || m.Agent == agentName)
+                .ToList();
+
+            var response = await _agentService.ChatWithAgentAsync(agentName, request, relevantHistory);
+            
+            // Store conversation in session
             var userMessage = new GroupChatMessage
             {
                 Content = request.Message,
                 Agent = "user",
                 Timestamp = DateTime.UtcNow,
-                Turn = 0
+                Turn = conversationHistory.Count,
+                MessageId = Guid.NewGuid().ToString()
             };
             
             var agentMessage = new GroupChatMessage
@@ -124,136 +120,37 @@ public class ChatController : ControllerBase
                 Content = response.Content,
                 Agent = response.Agent,
                 Timestamp = response.Timestamp,
-                Turn = 1
+                Turn = conversationHistory.Count + 1,
+                MessageId = Guid.NewGuid().ToString()
             };
 
             await _sessionManager.AddMessageToSessionAsync(sessionId, userMessage);
             await _sessionManager.AddMessageToSessionAsync(sessionId, agentMessage);
 
-            return Ok(response);
+            // Return frontend-compatible single chat response
+            return Ok(new
+            {
+                content = response.Content,
+                agent = response.Agent,
+                session_id = sessionId,
+                timestamp = DateTime.UtcNow.ToString("O"),
+                metadata = new { 
+                    usage = response.Usage,
+                    processing_time_ms = response.ProcessingTimeMs,
+                    conversation_length = conversationHistory.Count + 2, // +2 for new user and agent messages
+                    history_used = relevantHistory.Count
+                }
+            });
         }
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Agent not found: {AgentName}", request.Agent);
-            
-            var availableAgents = await _agentService.GetAvailableAgentsAsync();
-            return NotFound(new { 
-                error = ex.Message,
-                agent_requested = request.Agent,
-                available_agents = availableAgents.Select(a => a.Name).ToList()
-            });
+            return NotFound(new { detail = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in generic chat");
-            return StatusCode(500, new { error = "Internal server error during generic chat" });
+            _logger.LogError(ex, "Error in chat");
+            return StatusCode(500, new { detail = "Internal server error during chat" });
         }
-    }
-
-    /// <summary>
-    /// Start a new chat session
-    /// </summary>
-    [HttpPost("session/new")]
-    public async Task<ActionResult<object>> CreateNewSession()
-    {
-        try
-        {
-            var sessionId = await _sessionManager.CreateSessionAsync();
-            _logger.LogInformation("Created new chat session: {SessionId}", sessionId);
-            
-            return Ok(new {
-                session_id = sessionId,
-                created_at = DateTime.UtcNow,
-                message = "New chat session created successfully"
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating new chat session");
-            return StatusCode(500, new { error = "Internal server error while creating session" });
-        }
-    }
-
-    /// <summary>
-    /// Continue a conversation in an existing session
-    /// </summary>
-    [HttpPost("session/{sessionId}/continue")]
-    public async Task<ActionResult<ChatResponse>> ContinueSession(string sessionId, [FromBody] ChatRequest request)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(sessionId))
-            {
-                return BadRequest(new { error = "Session ID is required" });
-            }
-
-            if (string.IsNullOrWhiteSpace(request.Message))
-            {
-                return BadRequest(new { error = "Message is required" });
-            }
-
-            var sessionExists = await _sessionManager.SessionExistsAsync(sessionId);
-            if (!sessionExists)
-            {
-                return NotFound(new { error = "Session not found", session_id = sessionId });
-            }
-
-            // Get session history for context
-            var history = await _sessionManager.GetSessionHistoryAsync(sessionId);
-            var conversationContext = BuildConversationContext(history);
-
-            // Use the last agent from the session or default to generic
-            var lastAgentMessage = history.LastOrDefault(m => m.Agent != "user");
-            var agentName = request.Agent ?? lastAgentMessage?.Agent ?? "generic";
-
-            // Add context to the request
-            request.SessionId = sessionId;
-            request.Context = conversationContext;
-
-            var response = await _agentService.ChatWithAgentAsync(agentName, request);
-            response.SessionId = sessionId;
-
-            // Store new messages
-            var userMessage = new GroupChatMessage
-            {
-                Content = request.Message,
-                Agent = "user",
-                Timestamp = DateTime.UtcNow,
-                Turn = history.Count
-            };
-            
-            var agentMessage = new GroupChatMessage
-            {
-                Content = response.Content,
-                Agent = response.Agent,
-                Timestamp = response.Timestamp,
-                Turn = history.Count + 1
-            };
-
-            await _sessionManager.AddMessageToSessionAsync(sessionId, userMessage);
-            await _sessionManager.AddMessageToSessionAsync(sessionId, agentMessage);
-
-            return Ok(response);
-        }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning(ex, "Agent not found for session continuation");
-            return BadRequest(new { error = ex.Message, session_id = sessionId });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error continuing session {SessionId}", sessionId);
-            return StatusCode(500, new { error = "Internal server error while continuing session" });
-        }
-    }
-
-    private string BuildConversationContext(List<GroupChatMessage> history)
-    {
-        if (!history.Any()) return "";
-
-        var recentMessages = history.TakeLast(6).ToList();
-        var contextParts = recentMessages.Select(m => $"{m.Agent}: {m.Content}").ToList();
-        
-        return $"Recent conversation context:\n{string.Join("\n", contextParts)}";
     }
 }

@@ -2,23 +2,14 @@ using DotNetSemanticKernel.Configuration;
 using DotNetSemanticKernel.Services;
 using Microsoft.SemanticKernel;
 using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerUI;
+using System.Text;
+using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load environment variables from .env file if it exists
-if (File.Exists(".env"))
-{
-    foreach (var line in File.ReadAllLines(".env"))
-    {
-        if (line.StartsWith("#") || !line.Contains("=")) continue;
-        
-        var parts = line.Split('=', 2);
-        if (parts.Length == 2)
-        {
-            Environment.SetEnvironmentVariable(parts[0].Trim(), parts[1].Trim());
-        }
-    }
-}
+// Load environment variables from .env file
+Env.Load();
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -29,11 +20,11 @@ builder.Services.AddSwaggerGen(c =>
     { 
         Title = ".NET Semantic Kernel Agents API", 
         Version = "v1",
-        Description = "A modern .NET 9 implementation of Semantic Kernel agents with Azure AI integration - Workshop Edition"
+        Description = "A modern .NET 9 implementation of Semantic Kernel agents with Azure AI integration"
     });
 });
 
-// Configure CORS
+// Configure CORS - more permissive for development
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -41,10 +32,21 @@ builder.Services.AddCors(options =>
         var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? 
                          builder.Configuration["FRONTEND_URL"] ?? 
                          "http://localhost:3001";
-        policy.WithOrigins(frontendUrl)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        
+        if (builder.Environment.IsDevelopment())
+        {
+            // More permissive CORS for development
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+        else
+        {
+            policy.WithOrigins(frontendUrl)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
     });
 });
 
@@ -69,7 +71,7 @@ builder.Services.Configure<AzureAIConfig>(options =>
             Endpoint = azureOpenAIEndpoint,
             ApiKey = azureOpenAIApiKey,
             DeploymentName = azureOpenAIDeployment ?? "gpt-4o",
-            ApiVersion = azureOpenAIApiVersion ?? "2024-02-01"
+            ApiVersion = azureOpenAIApiVersion ?? "2024-10-21"
         };
     }
     else
@@ -115,23 +117,14 @@ builder.Services.AddScoped<IKernelBuilder>(provider =>
             deploymentName: config.AzureOpenAI.DeploymentName ?? "gpt-4o",
             endpoint: config.AzureOpenAI.Endpoint,
             apiKey: config.AzureOpenAI.ApiKey,
-            apiVersion: config.AzureOpenAI.ApiVersion ?? "2024-02-01");
+            apiVersion: config.AzureOpenAI.ApiVersion ?? "2024-10-21");
             
         Console.WriteLine($"? Configured Azure OpenAI: {config.AzureOpenAI.Endpoint}");
         Console.WriteLine($"?? Using deployment: {config.AzureOpenAI.DeploymentName}");
     }
     else
     {
-        // Log configuration status for debugging
-        Console.WriteLine("?? Azure OpenAI configuration missing or incomplete");
-        Console.WriteLine("Please set either:");
-        Console.WriteLine("1. Environment variables (recommended for workshop):");
-        Console.WriteLine("   AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com");
-        Console.WriteLine("   AZURE_OPENAI_API_KEY=your-api-key");
-        Console.WriteLine("   AZURE_OPENAI_DEPLOYMENT_NAME=your-deployment");
-        Console.WriteLine("2. Or update appsettings.json with Azure OpenAI configuration");
-        
-        throw new InvalidOperationException("Azure OpenAI configuration required. See console output for setup instructions.");
+        throw new InvalidOperationException("Azure OpenAI configuration required. Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY environment variables.");
     }
     
     return kernelBuilder;
@@ -148,12 +141,28 @@ builder.Services.AddScoped<IAgentService, AgentService>();
 builder.Services.AddScoped<IGroupChatService, GroupChatService>();
 builder.Services.AddSingleton<ISessionManager, SessionManager>();
 
-// Add logging with better configuration
+// Add logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 var app = builder.Build();
+
+// Add request logging middleware for debugging
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/group-chat") && context.Request.Method == "POST")
+    {
+        context.Request.EnableBuffering();
+        var body = await new StreamReader(context.Request.Body).ReadToEndAsync();
+        context.Request.Body.Position = 0;
+        
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("Group-chat request body: {RequestBody}", body);
+    }
+    
+    await next();
+});
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
@@ -163,15 +172,29 @@ if (app.Environment.IsDevelopment())
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", ".NET Semantic Kernel Agents API V1");
         c.RoutePrefix = string.Empty; // Make Swagger the default page
+        c.DisplayRequestDuration();
+        c.EnableTryItOutByDefault();
+        c.EnableDeepLinking();
+        c.EnableFilter();
+        c.ShowExtensions();
+        c.EnableValidator();
+        c.SupportedSubmitMethods(SubmitMethod.Get, SubmitMethod.Post, SubmitMethod.Put, SubmitMethod.Delete, SubmitMethod.Patch);
     });
 }
 
-app.UseHttpsRedirection();
+// Important: Use CORS before other middleware
 app.UseCors("AllowFrontend");
+
+// Only use HTTPS redirection in production or when explicitly configured
+if (!app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("ForceHttps"))
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseAuthorization();
 app.MapControllers();
 
-// Health check endpoint with configuration status
+// Health check
 app.MapGet("/health", (Microsoft.Extensions.Options.IOptions<AzureAIConfig> configOptions) => 
 {
     var azureConfig = configOptions.Value;
@@ -182,53 +205,60 @@ app.MapGet("/health", (Microsoft.Extensions.Options.IOptions<AzureAIConfig> conf
     return new 
     { 
         status = "healthy", 
-        timestamp = DateTime.UtcNow, 
-        framework = ".NET 9",
-        configuration = new
-        {
-            azureOpenAI = hasAzureOpenAI ? "configured" : "missing",
-            azureAIFoundry = hasAzureFoundry ? "configured" : "missing",
-            frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? "http://localhost:3001",
-            configurationSource = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") != null ? "environment" : "appsettings"
-        }
+        timestamp = DateTime.UtcNow,
+        agents = new { status = "available" },
+        session_manager = "operational"
     };
-});
+}).WithName("GetHealth").WithTags("Health");
 
-// Configuration info endpoint for workshop
-app.MapGet("/api/config", (Microsoft.Extensions.Options.IOptions<AzureAIConfig> configOptions) =>
+// Reset endpoint that frontend expects
+app.MapPost("/reset", async (HttpContext context,
+    DotNetSemanticKernel.Services.ISessionManager sessionManager,
+    ILogger<Program> logger) =>
 {
-    var azureConfig = configOptions.Value;
-    var endpoint = azureConfig?.AzureOpenAI?.Endpoint;
-    var projectEndpoint = azureConfig?.AzureAIFoundry?.ProjectEndpoint;
+    using var reader = new StreamReader(context.Request.Body);
+    var body = await reader.ReadToEndAsync();
     
-    return new
+    try
     {
-        configurationSource = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") != null ? "environment_variables" : "appsettings_json",
-        azureOpenAI = new
+        var requestData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(body, new System.Text.Json.JsonSerializerOptions
         {
-            configured = !string.IsNullOrEmpty(endpoint) && 
-                        !string.IsNullOrEmpty(azureConfig?.AzureOpenAI?.ApiKey),
-            endpoint = endpoint != null ? endpoint.Substring(0, Math.Min(30, endpoint.Length)) + "..." : null,
-            deployment = azureConfig?.AzureOpenAI?.DeploymentName,
-            apiVersion = azureConfig?.AzureOpenAI?.ApiVersion
-        },
-        azureAIFoundry = new
-        {
-            configured = !string.IsNullOrEmpty(projectEndpoint),
-            projectEndpoint = projectEndpoint != null ? projectEndpoint.Substring(0, Math.Min(30, projectEndpoint.Length)) + "..." : null,
-            hasPeopleAgent = !string.IsNullOrEmpty(azureConfig?.AzureAIFoundry?.PeopleAgentId),
-            hasKnowledgeAgent = !string.IsNullOrEmpty(azureConfig?.AzureAIFoundry?.KnowledgeAgentId)
-        },
-        frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? "http://localhost:3001"
-    };
-});
+            PropertyNameCaseInsensitive = true
+        });
 
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8002";
+        string? sessionId = null;
+        if (requestData?.ContainsKey("session_id") == true)
+        {
+            sessionId = requestData["session_id"]?.ToString();
+        }
+
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            await sessionManager.ClearSessionAsync(sessionId);
+        }
+
+        return Results.Ok(new { 
+            status = "success", 
+            message = "Session reset successfully",
+            session_id = sessionId
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error resetting session");
+        return Results.StatusCode(500);
+    }
+}).WithName("ResetSession").WithTags("Session");
+
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8000";
+
+// Configure URLs - only HTTP for development to avoid certificate issues
 app.Urls.Add($"http://localhost:{port}");
 
-Console.WriteLine($"?? .NET Semantic Kernel Agents API starting on port {port}");
-Console.WriteLine($"?? Swagger UI available at: http://localhost:{port}");
-Console.WriteLine($"?? Configuration endpoint: http://localhost:{port}/api/config");
-Console.WriteLine($"?? Configuration source: {(Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") != null ? "Environment variables" : "appsettings.json")}");
+Console.WriteLine($"?? .NET Semantic Kernel Agents API");
+Console.WriteLine($"?? Swagger UI: http://localhost:{port}");
+Console.WriteLine($"? Endpoints: /agents, /chat, /group-chat, /health");
+Console.WriteLine($"?? Environment: {app.Environment.EnvironmentName}");
+Console.WriteLine($"?? CORS: {(app.Environment.IsDevelopment() ? "Development (Allow All)" : "Production (Restricted)")}");
 
 app.Run();
