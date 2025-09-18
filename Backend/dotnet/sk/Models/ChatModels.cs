@@ -86,7 +86,7 @@ public class GroupChatRequest
     public string? SessionId { get; set; }
 
     [JsonPropertyName("max_turns")]
-    public int MaxTurns { get; set; } = 3;
+    public int MaxTurns { get; set; } = 2;
 
     [JsonPropertyName("use_semantic_kernel_groupchat")]
     public bool UseSemanticKernelGroupChat { get; set; } = false;
