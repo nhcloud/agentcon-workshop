@@ -130,6 +130,7 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     message: str
     agent: Optional[str] = None
+    agents: Optional[List[str]] = None
     session_id: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
 
@@ -169,6 +170,7 @@ async def list_agents():
         "agents": [
             {
                 "name": name,
+                "id": name,  # Add id field for frontend compatibility
                 "type": agent.agent_type.value,
                 "available": agent.is_available,
                 "capabilities": agent.get_capabilities()
@@ -215,16 +217,45 @@ async def chat(request: ChatRequest):
         await session_manager.add_message(session_id, user_message)
         
         # Route to appropriate agent
-        if request.agent:
-            # Forced agent
+        selected_agent_name = None
+        
+        # Priority: agents array > agent > auto-route
+        if request.agents:
+            # Handle agents array - for single agent mode, use first agent from array
+            if len(request.agents) == 1:
+                # Single agent from array
+                agent_name = request.agents[0]
+                agent = agent_registry.get_agent(agent_name)
+                if not agent:
+                    raise HTTPException(404, f"Agent '{agent_name}' not found")
+                if not agent.is_available:
+                    raise HTTPException(503, f"Agent '{agent_name}' is not available")
+                selected_agent_name = agent_name
+            elif len(request.agents) > 1:
+                # Multiple agents - redirect to group chat functionality
+                # For now, use the first agent but log this as a multi-agent request
+                logger.warning(f"Multiple agents provided in /chat endpoint: {request.agents}. Using first agent: {request.agents[0]}")
+                agent_name = request.agents[0]
+                agent = agent_registry.get_agent(agent_name)
+                if not agent:
+                    raise HTTPException(404, f"Agent '{agent_name}' not found")
+                if not agent.is_available:
+                    raise HTTPException(503, f"Agent '{agent_name}' is not available")
+                selected_agent_name = agent_name
+            else:
+                # Empty agents array - fall back to auto-route
+                pass
+        elif request.agent:
+            # Forced agent (legacy single agent parameter)
             agent = agent_registry.get_agent(request.agent)
             if not agent:
                 raise HTTPException(404, f"Agent '{request.agent}' not found")
             if not agent.is_available:
                 raise HTTPException(503, f"Agent '{request.agent}' is not available")
             selected_agent_name = request.agent
-        else:
-            # Auto-route
+        
+        # If no agent selected yet, auto-route
+        if not selected_agent_name:
             available_agents = agent_registry.get_available_agents()
             if not available_agents:
                 raise HTTPException(503, "No agents available")
@@ -235,7 +266,9 @@ async def chat(request: ChatRequest):
                 history, 
                 request.metadata
             )
-            agent = agent_registry.get_agent(selected_agent_name)
+        
+        # Get the final agent to process the message
+        agent = agent_registry.get_agent(selected_agent_name)
         
         # Process message with selected agent
         response = await agent.process_message(
