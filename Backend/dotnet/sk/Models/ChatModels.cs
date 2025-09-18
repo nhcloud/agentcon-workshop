@@ -80,7 +80,7 @@ public class GroupChatRequest
     public string Message { get; set; } = string.Empty;
 
     [JsonPropertyName("agents")]
-    public List<string> Agents { get; set; } = new();
+    public List<string>? Agents { get; set; } = null;
 
     [JsonPropertyName("session_id")]
     public string? SessionId { get; set; }

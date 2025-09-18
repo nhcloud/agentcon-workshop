@@ -26,16 +26,15 @@ public class GroupChatController : ControllerBase
     }
 
     /// <summary>
-    /// Start a group chat with multiple agents
+    /// Start a group chat with multiple agents using Semantic Kernel AgentGroupChat
     /// Frontend payload: { message, session_id?, config?, summarize?, mode?, agents? }
-    /// If no agents provided, will auto-select appropriate agents based on the message
+    /// Agents can be null - will auto-select available agents
     /// </summary>
     [HttpPost("group-chat")]
     public async Task<ActionResult<object>> StartGroupChat([FromBody] GroupChatRequest request)
     {
         try
         {
-            // Log raw request for debugging
             _logger.LogInformation("Group chat endpoint called");
             
             if (string.IsNullOrWhiteSpace(request.Message))
@@ -43,93 +42,48 @@ public class GroupChatController : ControllerBase
                 return BadRequest(new { detail = "Message is required" });
             }
 
-            // Enhanced logging for debugging
-            _logger.LogInformation("Group chat request: Message='{Message}', Agents={Agents}, SessionId='{SessionId}', Mode='{Mode}', Config={Config}", 
+            _logger.LogInformation("Group chat request: Message='{Message}', Agents={Agents}, SessionId='{SessionId}'", 
                 request.Message, 
                 request.Agents != null ? $"[{string.Join(", ", request.Agents)}]" : "null", 
-                request.SessionId ?? "null",
-                request.Mode,
-                request.Config?.ToString() ?? "null");
+                request.SessionId ?? "null");
 
-            // Auto-select agents if none provided (matching Python backend behavior)
+            // Auto-select agents if none provided
             if (request.Agents == null || !request.Agents.Any())
             {
-                _logger.LogInformation("No agents specified, auto-selecting agents for group chat");
+                _logger.LogInformation("No agents specified, auto-selecting all available agents for group chat");
                 
-                // Get available agents
                 var availableAgents = await _agentService.GetAvailableAgentsAsync();
                 var availableAgentsList = availableAgents.ToList();
                 
-                _logger.LogInformation("Available agents: {AvailableAgents}", 
-                    string.Join(", ", availableAgentsList.Select(a => a.Name)));
-
-                // Smart agent selection based on available agents
-                var selectedAgents = new List<string>();
-
-                // Prefer specialized agents for group chat
-                var specializedAgents = availableAgentsList
-                    .Where(a => a.Name != "generic_agent" && a.Name != "generic")
-                    .OrderBy(a => a.Name) // Consistent ordering
-                    .Take(2)
-                    .Select(a => a.Name)
-                    .ToList();
-
-                selectedAgents.AddRange(specializedAgents);
-
-                // If we don't have enough agents, add generic agent
-                if (selectedAgents.Count == 0)
-                {
-                    var genericAgent = availableAgentsList.FirstOrDefault(a => a.Name == "generic_agent" || a.Name == "generic");
-                    if (genericAgent != null)
-                    {
-                        selectedAgents.Add(genericAgent.Name);
-                    }
-                }
-
-                // Ensure we have at least one agent (fallback)
-                if (!selectedAgents.Any())
-                {
-                    selectedAgents.Add("generic_agent");
-                }
-
-                request.Agents = selectedAgents;
-                _logger.LogInformation("Auto-selected agents for group chat: {Agents}", string.Join(", ", request.Agents));
+                // Select all available agents for a rich group chat experience
+                request.Agents = availableAgentsList.Select(a => a.Name).ToList();
+                
+                _logger.LogInformation("Auto-selected {AgentCount} agents: {Agents}", 
+                    request.Agents.Count, string.Join(", ", request.Agents));
             }
-
-            // Validate that the selected agents exist
-            var availableAgentsForValidation = await _agentService.GetAvailableAgentsAsync();
-            var availableAgentNames = availableAgentsForValidation.Select(a => a.Name).ToHashSet();
-            var invalidAgents = request.Agents.Where(a => !availableAgentNames.Contains(a)).ToList();
-            
-            if (invalidAgents.Any())
+            else
             {
-                _logger.LogWarning("Invalid agents specified: {InvalidAgents}", string.Join(", ", invalidAgents));
-                return BadRequest(new { 
-                    detail = "Invalid agents specified", 
-                    invalid_agents = invalidAgents,
-                    available_agents = availableAgentNames.ToList(),
-                    suggestion = "Use /agents endpoint to get list of available agents"
-                });
+                _logger.LogInformation("Using provided agents: {Agents}", string.Join(", ", request.Agents));
             }
 
-            _logger.LogInformation("Starting group chat with {AgentCount} agents: {Agents}", 
+            // Always use Semantic Kernel AgentGroupChat for group chat
+            request.UseSemanticKernelGroupChat = true;
+
+            _logger.LogInformation("Starting Semantic Kernel AgentGroupChat with {AgentCount} agents: {Agents}", 
                 request.Agents.Count, string.Join(", ", request.Agents));
 
-            // Use Semantic Kernel AgentGroupChat if requested, otherwise standard
             GroupChatResponse response;
             try
             {
-                response = request.UseSemanticKernelGroupChat 
-                    ? await _groupChatService.StartSemanticKernelGroupChatAsync(request)
-                    : await _groupChatService.StartGroupChatAsync(request);
+                response = await _groupChatService.StartSemanticKernelGroupChatAsync(request);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in group chat service");
+                _logger.LogError(ex, "Error in Semantic Kernel group chat service");
                 return StatusCode(500, new { detail = $"Group chat service error: {ex.Message}" });
             }
 
-            // Transform response to match frontend expectations exactly
+            // Transform response to match frontend expectations
             var responseMessages = response.Messages?.Where(m => m.Agent != "user").ToList() ?? new List<GroupChatMessage>();
             
             var result = new
@@ -154,17 +108,12 @@ public class GroupChatController : ControllerBase
                     group_chat_type = response.GroupChatType,
                     agent_count = response.AgentCount,
                     agents_used = request.Agents,
-                    auto_selected = true
+                    semantic_kernel_groupchat = true
                 }
             };
 
-            _logger.LogInformation("Group chat completed successfully with {ResponseCount} responses", responseMessages.Count);
+            _logger.LogInformation("Semantic Kernel group chat completed successfully with {ResponseCount} responses", responseMessages.Count);
             return Ok(result);
-        }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning(ex, "Invalid argument in group chat request");
-            return BadRequest(new { detail = ex.Message });
         }
         catch (Exception ex)
         {
