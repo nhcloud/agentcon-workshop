@@ -20,7 +20,7 @@ public class AgentsController : ControllerBase
 
     /// <summary>
     /// Get all available agents
-    /// Frontend expects: { agents: [{ id, name, description, ... }] }
+    /// Returns agents with provider information and counts
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<object>> GetAgents()
@@ -30,18 +30,19 @@ public class AgentsController : ControllerBase
             var agents = await _agentService.GetAvailableAgentsAsync();
             var agentList = agents.Select(a => new
             {
-                id = a.Name, // Frontend expects 'id' field
                 name = a.Name,
-                description = a.Description,
-                type = a.AgentType,
+                type = GetAgentType(a.Name),
                 available = true,
-                capabilities = a.Capabilities ?? new List<string>()
+                capabilities = a.Capabilities ?? new List<string>(),
+                provider = GetProviderType(a.AgentType, a.Name)
             }).ToList();
             
             _logger.LogInformation("Retrieved {AgentCount} available agents", agentList.Count);
             
             return Ok(new { 
-                agents = agentList
+                agents = agentList,
+                total = agentList.Count,
+                available = agentList.Count(a => a.available)
             });
         }
         catch (Exception ex)
@@ -49,5 +50,25 @@ public class AgentsController : ControllerBase
             _logger.LogError(ex, "Error retrieving agents");
             return StatusCode(500, new { detail = "Internal server error while retrieving agents" });
         }
+    }
+
+    private static string GetAgentType(string agentName)
+    {
+        return agentName switch
+        {
+            "generic_agent" => "generic",
+            "people_lookup" => "people_lookup", 
+            "knowledge_finder" => "knowledge_finder",
+            _ => agentName.Replace("foundry_", "")
+        };
+    }
+
+    private static string GetProviderType(string agentType, string agentName)
+    {
+        if (agentName.StartsWith("foundry_") || agentType == "Azure AI Foundry")
+        {
+            return "azure_foundry";
+        }
+        return "azure_openai";
     }
 }

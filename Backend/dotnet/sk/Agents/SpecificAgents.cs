@@ -74,7 +74,7 @@ Response Style:
 /// </summary>
 public class GenericAgent : BaseAgent
 {
-    public override string Name => "generic";
+    public override string Name => "generic_agent";
     public override string Description => "General-purpose conversational agent powered by Azure OpenAI for various tasks and inquiries";
     public override string Instructions => @"You are a helpful, knowledgeable, and versatile assistant powered by Azure OpenAI, designed to help with a wide variety of tasks and questions.
 
@@ -82,7 +82,7 @@ Your capabilities include:
 ?? General Conversation: Engaging in natural, helpful dialogue
 ?? Problem Solving: Analyzing challenges and suggesting solutions
 ?? Information Provision: Sharing knowledge across various domains
-??? Task Assistance: Helping with planning, organization, and execution
+?? Task Assistance: Helping with planning, organization, and execution
 ?? Guidance: Providing advice and recommendations
 ?? Research Support: Helping find and analyze information
 

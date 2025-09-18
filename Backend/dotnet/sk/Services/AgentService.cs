@@ -39,7 +39,8 @@ public class AgentService : IAgentService
         {
             ["people_lookup"] = async () => await CreateStandardAgentAsync<PeopleLookupAgent>(),
             ["knowledge_finder"] = async () => await CreateStandardAgentAsync<KnowledgeFinderAgent>(),
-            ["generic"] = async () => await CreateStandardAgentAsync<GenericAgent>()
+            ["generic_agent"] = async () => await CreateStandardAgentAsync<GenericAgent>(),
+            ["generic"] = async () => await CreateStandardAgentAsync<GenericAgent>() // Backward compatibility
         };
     }
 
@@ -115,10 +116,10 @@ public class AgentService : IAgentService
 
         _logger.LogInformation("Azure AI Foundry configured: {HasFoundry}", hasFoundryConfig);
 
-        // Generic agent (always available as Azure OpenAI)
+        // Always add the generic agent (Azure OpenAI)
         try
         {
-            var genericAgent = await _agentFactories["generic"]();
+            var genericAgent = await _agentFactories["generic_agent"]();
             agents.Add(new AgentInfo
             {
                 Name = genericAgent.Name,

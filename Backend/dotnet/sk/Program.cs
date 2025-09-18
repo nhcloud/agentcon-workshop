@@ -3,6 +3,7 @@ using DotNetSemanticKernel.Services;
 using Microsoft.SemanticKernel;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -158,6 +159,22 @@ builder.Logging.AddDebug();
 
 var app = builder.Build();
 
+// Add request logging middleware for debugging
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/group-chat") && context.Request.Method == "POST")
+    {
+        context.Request.EnableBuffering();
+        var body = await new StreamReader(context.Request.Body).ReadToEndAsync();
+        context.Request.Body.Position = 0;
+        
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("Group-chat request body: {RequestBody}", body);
+    }
+    
+    await next();
+});
+
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
@@ -187,8 +204,6 @@ if (!app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Fo
 
 app.UseAuthorization();
 app.MapControllers();
-
-// Essential endpoints only - matching Python FastAPI structure
 
 // Health check
 app.MapGet("/health", (Microsoft.Extensions.Options.IOptions<AzureAIConfig> configOptions) => 

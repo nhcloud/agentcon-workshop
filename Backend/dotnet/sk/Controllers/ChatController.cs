@@ -93,7 +93,7 @@ public class ChatController : ControllerBase
             }
 
             // Single agent handling with conversation history
-            var agentName = request.Agents?.FirstOrDefault() ?? request.Agent ?? "generic";
+            var agentName = request.Agents?.FirstOrDefault() ?? request.Agent ?? "generic_agent";
             
             _logger.LogInformation("Chat request for agent {AgentName} with {HistoryCount} previous messages: {Message}", 
                 agentName, conversationHistory.Count, request.Message);
