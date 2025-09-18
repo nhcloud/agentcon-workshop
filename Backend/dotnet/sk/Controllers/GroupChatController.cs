@@ -27,7 +27,8 @@ public class GroupChatController : ControllerBase
 
     /// <summary>
     /// Start a group chat with multiple agents
-    /// Matches Python: POST /group-chat
+    /// Frontend payload: { message, session_id?, config?, summarize?, mode?, agents }
+    /// Frontend expects: { conversation_id, total_turns, active_participants, responses, summary, content, metadata }
     /// </summary>
     [HttpPost("group-chat")]
     public async Task<ActionResult<object>> StartGroupChat([FromBody] GroupChatRequest request)
@@ -36,12 +37,12 @@ public class GroupChatController : ControllerBase
         {
             if (string.IsNullOrWhiteSpace(request.Message))
             {
-                return BadRequest(new { error = "Message is required" });
+                return BadRequest(new { detail = "Message is required" });
             }
 
             if (request.Agents == null || !request.Agents.Any())
             {
-                return BadRequest(new { error = "At least one agent must be specified" });
+                return BadRequest(new { detail = "At least one agent must be specified" });
             }
 
             // Validate agents exist
@@ -52,7 +53,7 @@ public class GroupChatController : ControllerBase
             if (invalidAgents.Any())
             {
                 return BadRequest(new { 
-                    error = "Invalid agents specified", 
+                    detail = "Invalid agents specified", 
                     invalid_agents = invalidAgents,
                     available_agents = availableAgentNames.ToList()
                 });
@@ -66,7 +67,7 @@ public class GroupChatController : ControllerBase
                 ? await _groupChatService.StartSemanticKernelGroupChatAsync(request)
                 : await _groupChatService.StartGroupChatAsync(request);
 
-            // Transform response to match Python FastAPI format
+            // Transform response to match frontend expectations exactly
             var responseMessages = response.Messages?.Where(m => m.Agent != "user").ToList() ?? new List<GroupChatMessage>();
             
             return Ok(new
@@ -79,7 +80,11 @@ public class GroupChatController : ControllerBase
                     agent = m.Agent,
                     content = m.Content,
                     message_id = m.MessageId,
-                    metadata = new { turn = m.Turn, agent_type = m.AgentType, timestamp = m.Timestamp }
+                    metadata = new { 
+                        turn = m.Turn, 
+                        agent_type = m.AgentType, 
+                        timestamp = m.Timestamp.ToString("O")
+                    }
                 }).ToList(),
                 summary = response.Summary,
                 content = response.Summary ?? responseMessages.LastOrDefault()?.Content,
@@ -92,18 +97,18 @@ public class GroupChatController : ControllerBase
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid argument in group chat request");
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(new { detail = ex.Message });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in group chat");
-            return StatusCode(500, new { error = "Internal server error occurred during group chat" });
+            return StatusCode(500, new { detail = "Internal server error occurred during group chat" });
         }
     }
 
     /// <summary>
     /// Get available group chat templates
-    /// Matches Python: GET /group-chat/templates
+    /// Frontend expects: { templates: [] }
     /// </summary>
     [HttpGet("group-chat/templates")]
     public ActionResult<object> GetGroupChatTemplates()
@@ -118,13 +123,13 @@ public class GroupChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving group chat templates");
-            return StatusCode(500, new { error = "Internal server error while retrieving templates" });
+            return StatusCode(500, new { detail = "Internal server error while retrieving templates" });
         }
     }
 
     /// <summary>
     /// Get active group chats
-    /// Matches Python: GET /group-chats
+    /// Frontend expects: { group_chats: [] }
     /// </summary>
     [HttpGet("group-chats")]
     public async Task<ActionResult<object>> GetActiveGroupChats()
@@ -142,8 +147,8 @@ public class GroupChatController : ControllerBase
                     groupChats.Add(new
                     {
                         session_id = sessionId,
-                        created_at = sessionInfo.CreatedAt,
-                        last_activity = sessionInfo.LastActivity,
+                        created_at = sessionInfo.CreatedAt.ToString("O"),
+                        last_activity = sessionInfo.LastActivity.ToString("O"),
                         message_count = sessionInfo.MessageCount,
                         agent_types = sessionInfo.AgentTypes
                     });
@@ -161,7 +166,7 @@ public class GroupChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving active group chats");
-            return StatusCode(500, new { error = "Internal server error while retrieving group chats" });
+            return StatusCode(500, new { detail = "Internal server error while retrieving group chats" });
         }
     }
 }

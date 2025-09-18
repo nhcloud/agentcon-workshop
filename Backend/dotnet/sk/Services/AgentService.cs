@@ -11,6 +11,7 @@ public interface IAgentService
     Task<IEnumerable<AgentInfo>> GetAvailableAgentsAsync();
     Task<IAgent?> GetAgentAsync(string agentName);
     Task<ChatResponse> ChatWithAgentAsync(string agentName, ChatRequest request);
+    Task<ChatResponse> ChatWithAgentAsync(string agentName, ChatRequest request, List<GroupChatMessage>? conversationHistory);
     Task<IAgent?> CreateAzureFoundryAgentAsync(string agentType);
 }
 
@@ -275,6 +276,11 @@ public class AgentService : IAgentService
 
     public async Task<ChatResponse> ChatWithAgentAsync(string agentName, ChatRequest request)
     {
+        return await ChatWithAgentAsync(agentName, request, null);
+    }
+
+    public async Task<ChatResponse> ChatWithAgentAsync(string agentName, ChatRequest request, List<GroupChatMessage>? conversationHistory)
+    {
         var agent = await GetAgentAsync(agentName);
         if (agent == null)
         {
@@ -284,7 +290,7 @@ public class AgentService : IAgentService
         try
         {
             _logger.LogInformation("Starting chat with agent {AgentName} for message: {Message}", agentName, request.Message);
-            var response = await agent.ChatAsync(request);
+            var response = await agent.ChatWithHistoryAsync(request, conversationHistory);
             _logger.LogInformation("Chat completed with agent {AgentName}, response length: {Length}", agentName, response.Content?.Length ?? 0);
             return response;
         }

@@ -207,6 +207,45 @@ app.MapGet("/health", (Microsoft.Extensions.Options.IOptions<AzureAIConfig> conf
     };
 }).WithName("GetHealth").WithTags("Health");
 
+// Reset endpoint that frontend expects
+app.MapPost("/reset", async (HttpContext context,
+    DotNetSemanticKernel.Services.ISessionManager sessionManager,
+    ILogger<Program> logger) =>
+{
+    using var reader = new StreamReader(context.Request.Body);
+    var body = await reader.ReadToEndAsync();
+    
+    try
+    {
+        var requestData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(body, new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        string? sessionId = null;
+        if (requestData?.ContainsKey("session_id") == true)
+        {
+            sessionId = requestData["session_id"]?.ToString();
+        }
+
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            await sessionManager.ClearSessionAsync(sessionId);
+        }
+
+        return Results.Ok(new { 
+            status = "success", 
+            message = "Session reset successfully",
+            session_id = sessionId
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error resetting session");
+        return Results.StatusCode(500);
+    }
+}).WithName("ResetSession").WithTags("Session");
+
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8000";
 
 // Configure URLs - only HTTP for development to avoid certificate issues

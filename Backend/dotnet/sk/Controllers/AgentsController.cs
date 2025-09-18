@@ -19,8 +19,8 @@ public class AgentsController : ControllerBase
     }
 
     /// <summary>
-    /// Get all available agents including Azure AI Foundry agents
-    /// Matches Python: GET /agents
+    /// Get all available agents
+    /// Frontend expects: { agents: [{ id, name, description, ... }] }
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<object>> GetAgents()
@@ -30,7 +30,9 @@ public class AgentsController : ControllerBase
             var agents = await _agentService.GetAvailableAgentsAsync();
             var agentList = agents.Select(a => new
             {
+                id = a.Name, // Frontend expects 'id' field
                 name = a.Name,
+                description = a.Description,
                 type = a.AgentType,
                 available = true,
                 capabilities = a.Capabilities ?? new List<string>()
@@ -45,7 +47,7 @@ public class AgentsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving agents");
-            return StatusCode(500, new { error = "Internal server error while retrieving agents" });
+            return StatusCode(500, new { detail = "Internal server error while retrieving agents" });
         }
     }
 }

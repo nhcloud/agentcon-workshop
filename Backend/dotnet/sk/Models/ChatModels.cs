@@ -93,6 +93,15 @@ public class GroupChatRequest
 
     [JsonPropertyName("context")]
     public string? Context { get; set; }
+
+    [JsonPropertyName("config")]
+    public object? Config { get; set; }
+
+    [JsonPropertyName("summarize")]
+    public bool Summarize { get; set; } = true;
+
+    [JsonPropertyName("mode")]
+    public string Mode { get; set; } = "sequential";
 }
 
 public class GroupChatResponse
