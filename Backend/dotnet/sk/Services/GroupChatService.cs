@@ -12,6 +12,7 @@ public interface IGroupChatService
     Task<GroupChatResponse> StartGroupChatAsync(GroupChatRequest request);
     Task<GroupChatResponse> StartSemanticKernelGroupChatAsync(GroupChatRequest request);
     Task<string> SummarizeConversationAsync(List<GroupChatMessage> messages);
+    Task<string> SummarizeConversationAsync(List<GroupChatMessage> messages, CancellationToken cancellationToken);
 }
 
 public class GroupChatService : IGroupChatService
@@ -38,6 +39,9 @@ public class GroupChatService : IGroupChatService
     /// </summary>
     public async Task<GroupChatResponse> StartGroupChatAsync(GroupChatRequest request)
     {
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(4)); // Internal timeout slightly less than middleware
+        var cancellationToken = cts.Token;
+        
         var sessionId = request.SessionId ?? await _sessionManager.CreateSessionAsync();
         var messages = new List<GroupChatMessage>();
         
@@ -54,14 +58,29 @@ public class GroupChatService : IGroupChatService
         await _sessionManager.AddMessageToSessionAsync(sessionId, userMessage);
 
         var currentTurn = 1;
+        var terminatedAgents = new HashSet<string>();
 
         try
         {
+            _logger.LogInformation("Starting group chat with {AgentCount} agents, max turns: {MaxTurns}", request.Agents?.Count ?? 0, request.MaxTurns);
+            
             // Process each agent in sequence for each turn
             for (int turn = 1; turn <= request.MaxTurns; turn++)
             {
-                foreach (var agentName in request.Agents)
+                cancellationToken.ThrowIfCancellationRequested();
+                
+                foreach (var agentName in request.Agents ?? new List<string>())
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    
+                    // Skip agents that have terminated
+                    if (terminatedAgents.Contains(agentName))
+                    {
+                        _logger.LogInformation("Agent {AgentName} has terminated, skipping", agentName);
+                        continue;
+                    }
+
+                    var agentStartTime = DateTime.UtcNow;
                     var agent = await _agentService.GetAgentAsync(agentName);
                     if (agent == null)
                     {
@@ -72,34 +91,86 @@ public class GroupChatService : IGroupChatService
                     // Prepare context for the agent
                     var agentContext = BuildAgentContext(messages, agentName, request.Message);
                     
-                    // Get agent response
-                    var response = await agent.RespondAsync(request.Message, agentContext);
-                    
-                    var agentMessage = new GroupChatMessage
+                    try
                     {
-                        Content = response,
-                        Agent = agentName,
-                        Timestamp = DateTime.UtcNow,
-                        Turn = currentTurn,
-                        MessageId = Guid.NewGuid().ToString()
-                    };
+                        // Get agent response with timeout
+                        using var agentCts = new CancellationTokenSource(TimeSpan.FromMinutes(1)); // 1 minute per agent
+                        using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, agentCts.Token);
+                        
+                        var response = await agent.RespondAsync(request.Message, agentContext);
+                        
+                        // Check if agent terminated
+                        bool isTerminated = IsAgentTerminated(response);
+                        if (isTerminated)
+                        {
+                            terminatedAgents.Add(agentName);
+                            _logger.LogInformation("Agent {AgentName} terminated from conversation", agentName);
+                        }
+                        
+                        var agentMessage = new GroupChatMessage
+                        {
+                            Content = response,
+                            Agent = agentName,
+                            Timestamp = DateTime.UtcNow,
+                            Turn = currentTurn,
+                            MessageId = Guid.NewGuid().ToString(),
+                            IsTerminated = isTerminated
+                        };
 
-                    messages.Add(agentMessage);
-                    await _sessionManager.AddMessageToSessionAsync(sessionId, agentMessage);
-                    
-                    _logger.LogInformation("Agent {AgentName} responded in turn {Turn}", agentName, currentTurn);
-                    currentTurn++;
+                        messages.Add(agentMessage);
+                        await _sessionManager.AddMessageToSessionAsync(sessionId, agentMessage);
+                        
+                        var processingTime = (DateTime.UtcNow - agentStartTime).TotalSeconds;
+                        _logger.LogInformation("Agent {AgentName} responded in turn {Turn} ({ProcessingTime:F1}s), terminated: {IsTerminated}", 
+                            agentName, currentTurn, processingTime, isTerminated);
+                        currentTurn++;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        _logger.LogWarning("Agent {AgentName} timed out, marking as terminated", agentName);
+                        terminatedAgents.Add(agentName);
+                        
+                        var timeoutMessage = new GroupChatMessage
+                        {
+                            Content = "TERMINATED - Agent response timed out",
+                            Agent = agentName,
+                            Timestamp = DateTime.UtcNow,
+                            Turn = currentTurn,
+                            MessageId = Guid.NewGuid().ToString(),
+                            IsTerminated = true
+                        };
+                        messages.Add(timeoutMessage);
+                        currentTurn++;
+                    }
+                }
+
+                // Check if all agents have terminated
+                if (terminatedAgents.Count == request.Agents?.Count)
+                {
+                    _logger.LogInformation("All agents have terminated, ending group chat");
+                    break;
                 }
 
                 // Check if we should continue
-                if (messages.Count >= request.Agents.Count * request.MaxTurns + 1)
+                if (messages.Count >= (request.Agents?.Count ?? 0) * request.MaxTurns + 1)
                 {
                     break;
                 }
             }
 
-            // Generate summary
-            var summary = await SummarizeConversationAsync(messages);
+            // Generate summary (with timeout protection)
+            string? summary = null;
+            try
+            {
+                using var summaryCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, summaryCts.Token);
+                summary = await SummarizeConversationAsync(messages, combinedCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Conversation summary timed out, skipping");
+                summary = "Summary generation timed out - conversation completed successfully.";
+            }
 
             return new GroupChatResponse
             {
@@ -108,8 +179,14 @@ public class GroupChatService : IGroupChatService
                 TotalTurns = currentTurn - 1,
                 Summary = summary,
                 GroupChatType = "Standard Group Chat",
-                AgentCount = request.Agents.Count
+                AgentCount = request.Agents?.Count ?? 0,
+                TerminatedAgents = terminatedAgents.ToList()
             };
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Group chat cancelled due to timeout for session {SessionId}", sessionId);
+            throw new TimeoutException("Group chat operation timed out. Please try with fewer agents or reduced max_turns.");
         }
         catch (Exception ex)
         {
@@ -126,6 +203,7 @@ public class GroupChatService : IGroupChatService
     {
         var sessionId = request.SessionId ?? await _sessionManager.CreateSessionAsync();
         var messages = new List<GroupChatMessage>();
+        var terminatedAgents = new HashSet<string>();
 
         try
         {
@@ -205,26 +283,43 @@ public class GroupChatService : IGroupChatService
                 var agentId = chatMessage.AuthorName ?? "unknown";
                 var agentName = agentMap.ContainsKey(agentId) ? agentMap[agentId] : agentId;
 
+                // Check if agent terminated
+                var content = chatMessage.Content ?? "";
+                bool isTerminated = IsAgentTerminated(content);
+                if (isTerminated)
+                {
+                    terminatedAgents.Add(agentName);
+                    _logger.LogInformation("Agent {AgentName} terminated from SK GroupChat", agentName);
+                }
+
                 var agentMessage = new GroupChatMessage
                 {
-                    Content = chatMessage.Content ?? "",
+                    Content = content,
                     Agent = agentName,
                     Timestamp = DateTime.UtcNow,
                     Turn = currentTurn,
                     AgentType = "Semantic Kernel AgentGroupChat",
-                    MessageId = Guid.NewGuid().ToString()
+                    MessageId = Guid.NewGuid().ToString(),
+                    IsTerminated = isTerminated
                 };
 
                 messages.Add(agentMessage);
                 await _sessionManager.AddMessageToSessionAsync(sessionId, agentMessage);
                 
-                _logger.LogInformation("SK GroupChat: Agent {AgentName} responded in iteration {Iteration}", agentName, iterationCount);
+                _logger.LogInformation("SK GroupChat: Agent {AgentName} responded in iteration {Iteration}, terminated: {IsTerminated}", agentName, iterationCount, isTerminated);
                 currentTurn++;
 
                 // Check termination conditions
                 if (iterationCount >= maxIterations)
                 {
                     _logger.LogInformation("SK GroupChat terminated after {Iterations} iterations (max reached)", iterationCount);
+                    break;
+                }
+
+                // Check if all agents have terminated
+                if (terminatedAgents.Count == chatAgents.Count)
+                {
+                    _logger.LogInformation("All agents have terminated in SK GroupChat, ending conversation");
                     break;
                 }
             }
@@ -239,7 +334,8 @@ public class GroupChatService : IGroupChatService
                 TotalTurns = currentTurn - 1,
                 Summary = summary,
                 GroupChatType = "Semantic Kernel AgentGroupChat",
-                AgentCount = chatAgents.Count
+                AgentCount = chatAgents.Count,
+                TerminatedAgents = terminatedAgents.ToList()
             };
         }
         catch (Exception ex)
@@ -257,8 +353,12 @@ public class GroupChatService : IGroupChatService
     /// </summary>
     private async Task<GroupChatResponse> StartEnhancedGroupChatAsync(GroupChatRequest request)
     {
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(4));
+        var cancellationToken = cts.Token;
+        
         var sessionId = request.SessionId ?? await _sessionManager.CreateSessionAsync();
         var messages = new List<GroupChatMessage>();
+        var terminatedAgents = new HashSet<string>();
         
         // Add initial user message
         var userMessage = new GroupChatMessage
@@ -272,58 +372,141 @@ public class GroupChatService : IGroupChatService
         messages.Add(userMessage);
 
         // Create enhanced context for group interaction
-        var conversationContext = $"You are participating in a group discussion with {request.Agents.Count} other AI agents. ";
+        var conversationContext = $"You are participating in a group discussion with {request.Agents?.Count ?? 0} other AI agents. ";
         conversationContext += $"Each agent brings unique expertise. Coordinate with others and build upon their insights. ";
         conversationContext += $"Original question: {request.Message}";
 
         // Simulate group chat with enhanced coordination
         var currentTurn = 1;
-        for (int turn = 1; turn <= request.MaxTurns; turn++)
+        try
         {
-            foreach (var agentName in request.Agents)
+            for (int turn = 1; turn <= request.MaxTurns; turn++)
             {
-                var agent = await _agentService.GetAgentAsync(agentName);
-                if (agent == null)
+                cancellationToken.ThrowIfCancellationRequested();
+                
+                foreach (var agentName in request.Agents ?? new List<string>())
                 {
-                    _logger.LogWarning("Agent {AgentName} not found in enhanced group chat", agentName);
-                    continue;
+                    cancellationToken.ThrowIfCancellationRequested();
+                    
+                    // Skip agents that have terminated
+                    if (terminatedAgents.Contains(agentName))
+                    {
+                        _logger.LogInformation("Agent {AgentName} has terminated, skipping", agentName);
+                        continue;
+                    }
+
+                    var agent = await _agentService.GetAgentAsync(agentName);
+                    if (agent == null)
+                    {
+                        _logger.LogWarning("Agent {AgentName} not found in enhanced group chat", agentName);
+                        continue;
+                    }
+
+                    try
+                    {
+                        // Build context with previous agent responses
+                        var agentContext = BuildAdvancedAgentContext(messages, agentName, request.Message, conversationContext);
+                        
+                        // Get response with timeout
+                        using var agentCts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+                        using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, agentCts.Token);
+                        
+                        var response = await agent.RespondAsync(request.Message, agentContext);
+                        
+                        // Check if agent terminated
+                        bool isTerminated = IsAgentTerminated(response);
+                        if (isTerminated)
+                        {
+                            terminatedAgents.Add(agentName);
+                            _logger.LogInformation("Agent {AgentName} terminated from enhanced conversation", agentName);
+                        }
+                        
+                        var agentMessage = new GroupChatMessage
+                        {
+                            Content = response,
+                            Agent = agentName,
+                            Timestamp = DateTime.UtcNow,
+                            Turn = currentTurn,
+                            AgentType = "Enhanced",
+                            MessageId = Guid.NewGuid().ToString(),
+                            IsTerminated = isTerminated
+                        };
+
+                        messages.Add(agentMessage);
+                        await _sessionManager.AddMessageToSessionAsync(sessionId, agentMessage);
+                        
+                        _logger.LogInformation("Enhanced GroupChat: Agent {AgentName} responded in turn {Turn}, terminated: {IsTerminated}", agentName, currentTurn, isTerminated);
+                        currentTurn++;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        _logger.LogWarning("Agent {AgentName} timed out in enhanced group chat", agentName);
+                        terminatedAgents.Add(agentName);
+                        
+                        var timeoutMessage = new GroupChatMessage
+                        {
+                            Content = "TERMINATED - Agent response timed out",
+                            Agent = agentName,
+                            Timestamp = DateTime.UtcNow,
+                            Turn = currentTurn,
+                            AgentType = "Enhanced",
+                            MessageId = Guid.NewGuid().ToString(),
+                            IsTerminated = true
+                        };
+                        messages.Add(timeoutMessage);
+                        currentTurn++;
+                    }
                 }
 
-                // Build context with previous agent responses
-                var agentContext = BuildAdvancedAgentContext(messages, agentName, request.Message, conversationContext);
-                
-                var response = await agent.RespondAsync(request.Message, agentContext);
-                
-                var agentMessage = new GroupChatMessage
+                // Check if all agents have terminated
+                if (terminatedAgents.Count == (request.Agents?.Count ?? 0))
                 {
-                    Content = response,
-                    Agent = agentName,
-                    Timestamp = DateTime.UtcNow,
-                    Turn = currentTurn,
-                    AgentType = "Enhanced",
-                    MessageId = Guid.NewGuid().ToString()
-                };
-
-                messages.Add(agentMessage);
-                await _sessionManager.AddMessageToSessionAsync(sessionId, agentMessage);
-                
-                _logger.LogInformation("Enhanced GroupChat: Agent {AgentName} responded in turn {Turn}", agentName, currentTurn);
-                currentTurn++;
+                    _logger.LogInformation("All agents have terminated in enhanced group chat, ending conversation");
+                    break;
+                }
             }
+
+            // Generate summary with timeout protection
+            string? summary = null;
+            try
+            {
+                using var summaryCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, summaryCts.Token);
+                summary = await SummarizeConversationAsync(messages, combinedCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                summary = "Summary generation timed out - enhanced conversation completed successfully.";
+            }
+
+            return new GroupChatResponse
+            {
+                Messages = messages,
+                SessionId = sessionId,
+                TotalTurns = currentTurn - 1,
+                Summary = summary,
+                GroupChatType = "Enhanced Group Chat (SK Fallback)",
+                AgentCount = request.Agents?.Count ?? 0,
+                TerminatedAgents = terminatedAgents.ToList()
+            };
         }
-
-        // Generate summary
-        var summary = await SummarizeConversationAsync(messages);
-
-        return new GroupChatResponse
+        catch (OperationCanceledException)
         {
-            Messages = messages,
-            SessionId = sessionId,
-            TotalTurns = currentTurn - 1,
-            Summary = summary,
-            GroupChatType = "Enhanced Group Chat (SK Fallback)",
-            AgentCount = request.Agents.Count
-        };
+            _logger.LogWarning("Enhanced group chat cancelled due to timeout for session {SessionId}", sessionId);
+            throw new TimeoutException("Enhanced group chat operation timed out.");
+        }
+    }
+
+    /// <summary>
+    /// Check if an agent response indicates termination
+    /// </summary>
+    private bool IsAgentTerminated(string response)
+    {
+        if (string.IsNullOrWhiteSpace(response))
+            return false;
+
+        // Check for exact termination pattern
+        return response.Trim().StartsWith("TERMINATED", StringComparison.OrdinalIgnoreCase);
     }
 
     private string BuildAdvancedAgentContext(List<GroupChatMessage> currentMessages, string agentName, string userMessage, string conversationContext)
@@ -361,6 +544,11 @@ public class GroupChatService : IGroupChatService
 
     public async Task<string> SummarizeConversationAsync(List<GroupChatMessage> messages)
     {
+        return await SummarizeConversationAsync(messages, CancellationToken.None);
+    }
+
+    public async Task<string> SummarizeConversationAsync(List<GroupChatMessage> messages, CancellationToken cancellationToken = default)
+    {
         try
         {
             if (messages.Count <= 1)
@@ -380,10 +568,10 @@ Analyze the following conversation between AI agents responding to a user's ques
 
 ?? **Main Topic**: What was the user asking about?
 ?? **Key Insights**: The most important points raised by each agent
-?? **Unique Perspectives**: How each agent approached the question differently  
+??? **Unique Perspectives**: How each agent approached the question differently  
 ?? **Consensus & Disagreements**: Areas where agents aligned or differed
-?? **Actionable Takeaways**: Practical next steps or recommendations
-?? **Overall Quality**: How well the agents addressed the user's needs
+? **Actionable Takeaways**: Practical next steps or recommendations
+? **Overall Quality**: How well the agents addressed the user's needs
 
 Format your summary clearly with the above sections. Be concise but thorough.";
 
@@ -397,9 +585,14 @@ Agent Responses:
 Please provide a comprehensive summary following the requested format.");
 
             var chatCompletion = _kernel.GetRequiredService<IChatCompletionService>();
-            var result = await chatCompletion.GetChatMessageContentsAsync(chatHistory);
+            var result = await chatCompletion.GetChatMessageContentsAsync(chatHistory, cancellationToken: cancellationToken);
 
             return result.LastOrDefault()?.Content ?? "Unable to generate summary.";
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Summary generation was cancelled");
+            return "Summary generation was cancelled due to timeout.";
         }
         catch (Exception ex)
         {

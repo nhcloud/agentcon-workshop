@@ -97,6 +97,24 @@ public class GroupChatController : ControllerBase
             {
                 response = await _groupChatService.StartSemanticKernelGroupChatAsync(request);
             }
+            catch (TimeoutException tex)
+            {
+                _logger.LogWarning(tex, "Group chat timed out");
+                return StatusCode(408, new { 
+                    detail = "Request timed out. Try reducing the number of agents or max_turns.",
+                    error_type = "timeout",
+                    suggestion = "Use fewer agents (1-2) or reduce max_turns to 1-2 for faster responses."
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Group chat was cancelled");
+                return StatusCode(408, new { 
+                    detail = "Request was cancelled due to timeout.",
+                    error_type = "cancelled",
+                    suggestion = "Try with fewer agents or reduce max_turns for faster processing."
+                });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in Semantic Kernel group chat service");
@@ -116,10 +134,12 @@ public class GroupChatController : ControllerBase
                     agent = m.Agent,
                     content = m.Content,
                     message_id = m.MessageId,
+                    is_terminated = m.IsTerminated,
                     metadata = new { 
                         turn = m.Turn, 
                         agent_type = m.AgentType, 
-                        timestamp = m.Timestamp.ToString("O")
+                        timestamp = m.Timestamp.ToString("O"),
+                        terminated = m.IsTerminated
                     }
                 }).ToList(),
                 summary = response.Summary,
@@ -130,12 +150,16 @@ public class GroupChatController : ControllerBase
                     agents_used = request.Agents,
                     max_turns_used = request.MaxTurns,
                     semantic_kernel_groupchat = true,
-                    early_termination = response.TotalTurns < (request.MaxTurns * request.Agents.Count)
+                    early_termination = response.TotalTurns < (request.MaxTurns * request.Agents.Count),
+                    terminated_agents = response.TerminatedAgents ?? new List<string>(),
+                    timeout_protection = "enabled"
                 }
             };
 
-            _logger.LogInformation("Semantic Kernel group chat completed successfully with {ResponseCount} responses, early termination: {EarlyTermination}", 
-                responseMessages.Count, response.TotalTurns < (request.MaxTurns * request.Agents.Count));
+            _logger.LogInformation("Semantic Kernel group chat completed successfully with {ResponseCount} responses, early termination: {EarlyTermination}, terminated agents: {TerminatedAgents}", 
+                responseMessages.Count, 
+                response.TotalTurns < (request.MaxTurns * request.Agents.Count),
+                string.Join(", ", response.TerminatedAgents ?? new List<string>()));
             return Ok(result);
         }
         catch (Exception ex)

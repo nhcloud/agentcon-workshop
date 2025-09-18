@@ -11,6 +11,19 @@ var builder = WebApplication.CreateBuilder(args);
 // Load environment variables from .env file
 Env.Load();
 
+// Configure request timeout - increase from default 20 seconds to 2 minutes
+builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
+{
+    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(5);
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(2);
+});
+
+// Configure HttpClient with longer timeout for external API calls
+builder.Services.AddHttpClient("AzureOpenAI", client =>
+{
+    client.Timeout = TimeSpan.FromMinutes(3); // 3 minutes for AI operations
+});
+
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -108,19 +121,25 @@ builder.Services.Configure<AzureAIConfig>(options =>
 builder.Services.AddScoped<IKernelBuilder>(provider =>
 {
     var config = provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<AzureAIConfig>>().Value;
+    var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
     var kernelBuilder = Kernel.CreateBuilder();
     
     // Try Azure OpenAI configuration (matching Python template structure)
     if (!string.IsNullOrEmpty(config?.AzureOpenAI?.Endpoint) && !string.IsNullOrEmpty(config.AzureOpenAI.ApiKey))
     {
+        // Use HttpClient with extended timeout
+        var httpClient = httpClientFactory.CreateClient("AzureOpenAI");
+        
         kernelBuilder.AddAzureOpenAIChatCompletion(
             deploymentName: config.AzureOpenAI.DeploymentName ?? "gpt-4o",
             endpoint: config.AzureOpenAI.Endpoint,
             apiKey: config.AzureOpenAI.ApiKey,
-            apiVersion: config.AzureOpenAI.ApiVersion ?? "2024-10-21");
+            apiVersion: config.AzureOpenAI.ApiVersion ?? "2024-10-21",
+            httpClient: httpClient);
             
-        Console.WriteLine($"? Configured Azure OpenAI: {config.AzureOpenAI.Endpoint}");
+        Console.WriteLine($"?? Configured Azure OpenAI: {config.AzureOpenAI.Endpoint}");
         Console.WriteLine($"?? Using deployment: {config.AzureOpenAI.DeploymentName}");
+        Console.WriteLine($"??  HTTP timeout: 3 minutes");
     }
     else
     {
@@ -147,6 +166,24 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 var app = builder.Build();
+
+// Add request timeout middleware
+app.Use(async (context, next) =>
+{
+    // Set longer timeout for group chat endpoints
+    if (context.Request.Path.StartsWithSegments("/group-chat"))
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)); // 5 minutes for group chat
+        context.RequestAborted = cts.Token;
+    }
+    else if (context.Request.Path.StartsWithSegments("/chat"))
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)); // 2 minutes for single chat
+        context.RequestAborted = cts.Token;
+    }
+    
+    await next();
+});
 
 // Add request logging middleware for debugging
 app.Use(async (context, next) =>
@@ -206,6 +243,17 @@ app.MapGet("/health", (Microsoft.Extensions.Options.IOptions<AzureAIConfig> conf
     { 
         status = "healthy", 
         timestamp = DateTime.UtcNow,
+        configuration = new
+        {
+            azure_openai = hasAzureOpenAI ? "configured" : "missing",
+            azure_ai_foundry = hasAzureFoundry ? "configured" : "missing",
+            timeout_settings = new
+            {
+                request_timeout = "5 minutes (group chat), 2 minutes (single chat)",
+                http_client_timeout = "3 minutes",
+                keep_alive_timeout = "5 minutes"
+            }
+        },
         agents = new { status = "available" },
         session_manager = "operational"
     };
@@ -257,8 +305,9 @@ app.Urls.Add($"http://localhost:{port}");
 
 Console.WriteLine($"?? .NET Semantic Kernel Agents API");
 Console.WriteLine($"?? Swagger UI: http://localhost:{port}");
-Console.WriteLine($"? Endpoints: /agents, /chat, /group-chat, /health");
+Console.WriteLine($"?? Endpoints: /agents, /chat, /group-chat, /health");
 Console.WriteLine($"?? Environment: {app.Environment.EnvironmentName}");
 Console.WriteLine($"?? CORS: {(app.Environment.IsDevelopment() ? "Development (Allow All)" : "Production (Restricted)")}");
+Console.WriteLine($"??  Request Timeouts: Group Chat (5 min), Single Chat (2 min), HTTP Client (3 min)");
 
 app.Run();
