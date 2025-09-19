@@ -2,6 +2,78 @@
 
 A comprehensive workshop for building sophisticated AI agent applications using Azure OpenAI services with multiple implementation options. Learn to create chatbot applications with specialized agent routing, group chat capabilities, and modern React frontends. The workshop provides both Python (Semantic Kernel & LangChain) and .NET implementations to demonstrate multi-agent architectures.
 
+## Quick Start: Workshop in Codespaces
+
+🚀 **Get started immediately with GitHub Codespaces - no local setup required!**
+
+### Step 1: Launch Codespaces
+1. Click the **"Code"** button above (green button)
+2. Select the **"Codespaces"** tab  
+3. Click **"Create codespace on main"**
+4. Wait for the environment to build (2-3 minutes)
+
+### Step 2: Automatic Setup
+Once Codespaces loads, the environment will automatically:
+- ✅ Install Node.js (LTS), Python 3.11, and .NET 9
+- ✅ Install all project dependencies
+- ✅ Set up VS Code extensions (Python, C#, Docker, Prettier)
+- ✅ Create environment configuration files
+
+### Step 3: Configure Azure Credentials
+1. Open `Backend/python/.env` (automatically created from template)
+2. Add your Azure credentials:
+   ```env
+   # Azure OpenAI Configuration
+   AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com
+   AZURE_OPENAI_DEPLOYMENT=gpt-4o
+   AZURE_OPENAI_KEY=your-azure-openai-api-key-here
+   
+   # Azure AI Foundry Configuration  
+   PROJECT_ENDPOINT=https://your-resource-name.services.ai.azure.com/api/projects/your-project-name
+   AGENT_ID=your-agent-id-here
+   ```
+
+### Step 4: Start the Workshop
+Choose your preferred implementation:
+
+**🐍 Python Semantic Kernel** (Recommended for beginners):
+```bash
+cd Backend/python/sk
+uvicorn main:app --reload
+```
+
+**🐍 Python LangChain**:
+```bash
+cd Backend/python/langchain  
+uvicorn main:app --reload
+```
+
+**🔷 .NET Semantic Kernel**:
+```bash
+cd Backend/dotnet/sk
+dotnet run
+```
+
+### Step 5: Launch Frontend
+In a new terminal (Ctrl+Shift+`):
+```bash
+cd frontend
+npm start
+```
+
+### Step 6: Access Your Application
+- **Frontend**: Click the popup to open port 3000, or use the Ports tab
+- **Backend API**: Available on port 8000/8001/5000 depending on implementation
+- **All ports are automatically forwarded and accessible via HTTPS**
+
+### 🎯 You're Ready!
+- 📓 Open the Jupyter notebooks (`.ipynb` files) for interactive learning
+- 🔍 Explore the code in VS Code with full IntelliSense
+- 🌐 Test the chat interface in your browser
+- 📖 Follow the workshop guides in the `docs/` folder
+
+---
+
 ## Workshop Features 
 
 - 🤖 **Multiple Implementation Options**:
