@@ -129,6 +129,9 @@ public class GroupChatResponse
 
     [JsonPropertyName("total_processing_time_ms")]
     public int TotalProcessingTimeMs { get; set; }
+
+    [JsonPropertyName("terminated_agents")]
+    public List<string>? TerminatedAgents { get; set; } = new();
 }
 
 public class GroupChatMessage
@@ -150,6 +153,9 @@ public class GroupChatMessage
 
     [JsonPropertyName("message_id")]
     public string MessageId { get; set; } = Guid.NewGuid().ToString();
+
+    [JsonPropertyName("is_terminated")]
+    public bool IsTerminated { get; set; } = false;
 }
 
 /// <summary>

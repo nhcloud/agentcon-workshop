@@ -1,3 +1,7 @@
+﻿@baseUrl=http://localhost:8000
+@contentType = application/json
+
+### ===NOTE===
 # .NET Semantic Kernel Agents Workshop - API Test Collection
 # 
 # This HTTP file tests the .NET Semantic Kernel API implementation
@@ -7,13 +11,14 @@
 # 2. Start the .NET API: dotnet run
 # 3. Ensure Azure OpenAI credentials are configured in .env
 #
-# Usage: Click "Send Request" above each ### section to test individual endpoints
+# Usage: Click "Send Request" above each section to test individual endpoints
 
-@baseUrl = http://localhost:8000
+###
 
 ### 1. Health Check
 # Tests basic API connectivity and configuration status
 GET {{baseUrl}}/health
+Accept: {{contentType}}
 
 ### 2. Get Available Agents
 # Returns list of all available agents with their capabilities
@@ -100,7 +105,46 @@ Content-Type: application/json
   "use_semantic_kernel_groupchat": true
 }
 
-### 10. Reset Session - Clear Conversation History
+### 10. Test Agent Termination - People Question
+# Test that knowledge_finder agent terminates when asked about people
+POST {{baseUrl}}/group-chat
+Content-Type: application/json
+
+{
+  "message": "Who are the best software engineers in our company for leading a new project?",
+  "agents": ["generic_agent", "people_lookup", "knowledge_finder"],
+  "session_id": "test-termination-001",
+  "max_turns": 2,
+  "use_semantic_kernel_groupchat": true
+}
+
+### 11. Test Agent Termination - Knowledge Question  
+# Test that people_lookup agent terminates when asked about technical knowledge
+POST {{baseUrl}}/group-chat
+Content-Type: application/json
+
+{
+  "message": "What are the latest best practices for implementing microservices with .NET?",
+  "agents": ["generic_agent", "people_lookup", "knowledge_finder"],
+  "session_id": "test-termination-002",
+  "max_turns": 2,
+  "use_semantic_kernel_groupchat": true
+}
+
+### 12. Test Agent Termination - All Agents Relevant
+# Test that no agents terminate when question is relevant to all
+POST {{baseUrl}}/group-chat
+Content-Type: application/json
+
+{
+  "message": "How can we build a team and knowledge base for implementing AI solutions in our organization?",
+  "agents": ["generic_agent", "people_lookup", "knowledge_finder"],
+  "session_id": "test-termination-003",
+  "max_turns": 2,
+  "use_semantic_kernel_groupchat": true
+}
+
+### 13. Reset Session - Clear Conversation History
 # Reset a specific session to clear conversation history
 POST {{baseUrl}}/reset
 Content-Type: application/json
@@ -109,7 +153,7 @@ Content-Type: application/json
   "session_id": "test-session-001"
 }
 
-### 11. Test Session Persistence
+### 14. Test Session Persistence
 # Test that conversation history is maintained across requests
 POST {{baseUrl}}/chat
 Content-Type: application/json
@@ -120,7 +164,7 @@ Content-Type: application/json
   "session_id": "persistence-test"
 }
 
-### 12. Test Session Persistence - Follow-up
+### 15. Test Session Persistence - Follow-up
 # This should reference the previous message in the same session
 POST {{baseUrl}}/chat
 Content-Type: application/json
@@ -131,7 +175,7 @@ Content-Type: application/json
   "session_id": "persistence-test"
 }
 
-### 13. Error Handling - Missing Message
+### 16. Error Handling - Missing Message
 # Test error handling with invalid request
 POST {{baseUrl}}/chat
 Content-Type: application/json
@@ -141,7 +185,7 @@ Content-Type: application/json
   "session_id": "error-test"
 }
 
-### 14. Error Handling - Invalid Agent
+### 17. Error Handling - Invalid Agent
 # Test error handling with non-existent agent
 POST {{baseUrl}}/chat
 Content-Type: application/json
@@ -152,11 +196,87 @@ Content-Type: application/json
   "session_id": "error-test-2"
 }
 
+### 18. Timeout-Optimized Test - Single Turn with 2 Agents
+# Optimized test case to avoid timeouts
+POST {{baseUrl}}/group-chat
+Content-Type: application/json
+
+{
+  "message": "What are the key benefits of using AI in software development?",
+  "agents": ["generic_agent", "knowledge_finder"],
+  "session_id": "timeout-test-001",
+  "max_turns": 1,
+  "use_semantic_kernel_groupchat": true
+}
+
+### 19. People Lookup Test - Specific Person Query
+# Test people_lookup agent with a specific person query (should provide helpful response, not terminate)
+POST {{baseUrl}}/group-chat
+Content-Type: application/json
+
+{
+  "message": "Who is Udai? Can you help me find information about this person or how to contact them?",
+  "agents": ["people_lookup", "generic_agent"],
+  "session_id": "people-lookup-test-001",
+  "max_turns": 1,
+  "use_semantic_kernel_groupchat": true
+}
+
+### 20. Performance Test - Lightweight Query
+# Test with a simple question that should process quickly
+POST {{baseUrl}}/group-chat
+Content-Type: application/json
+
+{
+  "message": "Hello, can you introduce yourselves?",
+  "agents": ["generic_agent", "people_lookup", "knowledge_finder"],
+  "session_id": "performance-test-001",
+  "max_turns": 1,
+  "use_semantic_kernel_groupchat": true
+}
+
+### 21. Knowledge Finder Termination Test
+# Test that knowledge_finder terminates when asked about finding specific people
+POST {{baseUrl}}/group-chat
+Content-Type: application/json
+
+{
+  "message": "Can you find Udai's contact information and phone number?",
+  "agents": ["knowledge_finder", "people_lookup"],
+  "session_id": "knowledge-termination-test",
+  "max_turns": 1,
+  "use_semantic_kernel_groupchat": true
+}
+
+### 22. People Lookup vs Knowledge Finder - Clear Distinction
+# Test showing how each agent handles their domain appropriately
+POST {{baseUrl}}/group-chat
+Content-Type: application/json
+
+{
+  "message": "I need to research .NET best practices AND find experts in our team who know about microservices",
+  "agents": ["knowledge_finder", "people_lookup", "generic_agent"],
+  "session_id": "domain-distinction-test",
+  "max_turns": 1,
+  "use_semantic_kernel_groupchat": true
+}
 ###
 # End of API Test Collection
 # 
 # Tips:
 # - Use different session_ids to test session isolation
-# - Check response metadata for performance metrics
-# - Modify messages to test different scenarios
+# - Check response metadata for performance metrics and terminated_agents list
+# - Modify messages to test different termination scenarios
+# - Test cases 10-12 specifically demonstrate agent termination behavior
+# - Test cases 18-20 are optimized to avoid timeout issues
+# - If you encounter timeouts, reduce max_turns to 1 or use fewer agents
+# - Monitor the timeout_protection metadata in responses
 # - Use the Swagger UI at http://localhost:8000 for interactive documentation
+
+### ⚠️ TIMEOUT TROUBLESHOOTING:
+# If you still get timeout errors:
+# 1. Reduce max_turns to 1
+# 2. Use only 1-2 agents per request
+# 3. Use shorter, simpler messages
+# 4. Check Azure OpenAI service availability
+# 5. Monitor server logs for detailed error information
