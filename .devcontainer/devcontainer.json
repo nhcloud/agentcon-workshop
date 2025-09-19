@@ -1,0 +1,96 @@
+{
+    "name": "AgentCon Workshop Environment",
+    "dockerFile": "Dockerfile",
+    
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.black-formatter",
+                "ms-python.isort",
+                "ms-dotnettools.csharp",
+                "ms-dotnettools.vscode-dotnet-runtime",
+                "ms-azuretools.vscode-docker",
+                "esbenp.prettier-vscode",
+                "ms-vscode.vscode-json",
+                "ms-vscode.vscode-typescript-next",
+                "bradlc.vscode-tailwindcss",
+                "formulahendry.auto-rename-tag",
+                "christian-kohler.path-intellisense"
+            ],
+            
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.formatting.provider": "black",
+                "python.linting.enabled": true,
+                "python.linting.pylintEnabled": false,
+                "python.linting.flake8Enabled": true,
+                "editor.formatOnSave": true,
+                "editor.codeActionsOnSave": {
+                    "source.organizeImports": true
+                },
+                "typescript.preferences.includePackageJsonAutoImports": "on",
+                "javascript.preferences.includePackageJsonAutoImports": "on"
+            }
+        }
+    },
+
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "lts"
+        },
+        "ghcr.io/devcontainers/features/python:1": {
+            "version": "3.11"
+        },
+        "ghcr.io/devcontainers/features/dotnet:2": {
+            "version": "9.0"
+        },
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "installZsh": true,
+            "installOhMyZsh": true,
+            "upgradePackages": true,
+            "username": "vscode",
+            "uid": "1000",
+            "gid": "1000"
+        }
+    },
+
+    "forwardPorts": [3000, 3001, 8000, 8001, 5000],
+
+    "portsAttributes": {
+        "3000": {
+            "label": "React Frontend (Main)",
+            "onAutoForward": "notify"
+        },
+        "3001": {
+            "label": "React Frontend (Alt)",
+            "onAutoForward": "notify"
+        },
+        "8000": {
+            "label": "Python Backend (LangChain)",
+            "onAutoForward": "notify"
+        },
+        "8001": {
+            "label": "Python Backend (Semantic Kernel)",
+            "onAutoForward": "notify"
+        },
+        "5000": {
+            "label": ".NET Backend",
+            "onAutoForward": "notify"
+        }
+    },
+
+    "postCreateCommand": "bash .devcontainer/setup.sh",
+
+    "remoteUser": "vscode",
+
+    "containerEnv": {
+        "PYTHONPATH": "/workspaces/agentcon-workshop/Backend/python:${PYTHONPATH}",
+        "NODE_ENV": "development"
+    },
+
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/agentcon-workshop,type=bind,consistency=cached",
+    "workspaceFolder": "/workspaces/agentcon-workshop"
+}
