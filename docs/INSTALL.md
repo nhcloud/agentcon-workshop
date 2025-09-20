@@ -113,4 +113,4 @@ Backend/python/
 After installation:
 1. **[Configure Environment](ENVIRONMENT_GUIDE.md)** - Set up your API credentials
 2. **[Explore Group Chat](GROUP_CHAT.md)** - Learn about multi-agent conversations
-3. **[Backend Architecture](../Backend/README.md)** - Understand the system design
+3. **[Choose Your Framework](../README.md#-workshop-navigation-guide)** - Python or .NET implementation guides
