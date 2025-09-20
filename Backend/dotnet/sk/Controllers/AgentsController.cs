@@ -1,4 +1,3 @@
-using DotNetSemanticKernel.Models;
 using DotNetSemanticKernel.Services;
 using Microsoft.AspNetCore.Mvc;
 

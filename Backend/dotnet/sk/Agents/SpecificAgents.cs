@@ -1,4 +1,3 @@
-using DotNetSemanticKernel.Models;
 using Microsoft.SemanticKernel;
 
 namespace DotNetSemanticKernel.Agents;

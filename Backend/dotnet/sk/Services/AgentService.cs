@@ -22,6 +22,10 @@ public class AgentService : IAgentService
     private readonly ILogger<AgentService> _logger;
     private readonly AzureAIConfig _azureConfig;
     private readonly Dictionary<string, Func<Task<IAgent>>> _agentFactories;
+    
+    // Add caching for Azure AI Foundry agents to prevent multiple initializations
+    private readonly Dictionary<string, IAgent> _foundryAgentCache = new();
+    private readonly SemaphoreSlim _foundryAgentCacheLock = new(1, 1);
 
     public AgentService(
         IServiceProvider serviceProvider, 
@@ -61,8 +65,26 @@ public class AgentService : IAgentService
             return null;
         }
 
+        // Check cache first to prevent multiple initializations
+        var cacheKey = $"foundry_{agentType}";
+        if (_foundryAgentCache.TryGetValue(cacheKey, out var cachedAgent))
+        {
+            _logger.LogDebug("Returning cached Azure AI Foundry agent: {AgentType}", agentType);
+            return cachedAgent;
+        }
+
+        await _foundryAgentCacheLock.WaitAsync();
         try
         {
+            // Double-check after acquiring lock
+            if (_foundryAgentCache.TryGetValue(cacheKey, out cachedAgent))
+            {
+                _logger.LogDebug("Returning cached Azure AI Foundry agent after lock: {AgentType}", agentType);
+                return cachedAgent;
+            }
+
+            _logger.LogInformation("Creating new Azure AI Foundry agent: {AgentType}", agentType);
+            
             var logger = _serviceProvider.GetRequiredService<ILogger<AzureAIFoundryAgent>>();
             
             var (agentId, description, instructions) = agentType.ToLowerInvariant() switch
@@ -92,17 +114,26 @@ public class AgentService : IAgentService
                 description: description,
                 instructions: instructions,
                 kernel: _kernel,
-                logger: logger
+                logger: logger,
+                managedIdentityClientId: _azureConfig.AzureAIFoundry.ManagedIdentityClientId
             );
 
             await foundryAgent.InitializeAsync();
-            _logger.LogInformation("Created Azure AI Foundry agent: {AgentName} with ID: {AgentId}", foundryAgent.Name, agentId);
+            
+            // Cache the agent to prevent future reinitializations
+            _foundryAgentCache[cacheKey] = foundryAgent;
+            
+            _logger.LogInformation("Created and cached Azure AI Foundry agent: {AgentName} with ID: {AgentId}", foundryAgent.Name, agentId);
             return foundryAgent;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create Azure AI Foundry agent for type {AgentType}", agentType);
             return null;
+        }
+        finally
+        {
+            _foundryAgentCacheLock.Release();
         }
     }
 
