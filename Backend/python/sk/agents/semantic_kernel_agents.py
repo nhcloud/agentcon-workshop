@@ -192,8 +192,18 @@ class SemanticKernelAzureFoundryAgent(BaseAgent):
             )
         
         try:
-            # Use simple DefaultAzureCredential - the HTTPS check above should prevent the bearer token error
-            credential = DefaultAzureCredential()
+            # Check for managed identity client ID and configure credential accordingly
+            managed_identity_client_id = os.getenv("MANAGED_IDENTITY_CLIENT_ID")
+            
+            if managed_identity_client_id:
+                # Use managed identity with specific client ID
+                credential = DefaultAzureCredential(managed_identity_client_id=managed_identity_client_id)
+                self.logger.info(f"Using DefaultAzureCredential with managed identity client ID: {managed_identity_client_id}")
+            else:
+                # Use simple DefaultAzureCredential - the HTTPS check above should prevent the bearer token error
+                credential = DefaultAzureCredential()
+                self.logger.info("Using DefaultAzureCredential without managed identity client ID")
+            
             self.client = AIProjectClient(endpoint=self.project_endpoint, credential=credential)
             definition = await self.client.agents.get_agent(agent_id=self.agent_id)
             

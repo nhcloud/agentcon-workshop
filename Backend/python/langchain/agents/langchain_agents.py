@@ -201,7 +201,18 @@ class LangChainAzureFoundryAgent(BaseAgent):
     
     async def _create_foundry_run(self, message: str, thread_id: Optional[str] = None) -> tuple[str, str]:
         """Create and process an Azure Foundry agent run."""
-        cred = DefaultAzureCredential()
+        # Check for managed identity client ID and configure credential accordingly
+        managed_identity_client_id = os.getenv("MANAGED_IDENTITY_CLIENT_ID")
+        
+        if managed_identity_client_id:
+            # Use managed identity with specific client ID
+            cred = DefaultAzureCredential(managed_identity_client_id=managed_identity_client_id)
+            self.logger.info(f"Using DefaultAzureCredential with managed identity client ID: {managed_identity_client_id}")
+        else:
+            # Use simple DefaultAzureCredential
+            cred = DefaultAzureCredential()
+            self.logger.info("Using DefaultAzureCredential without managed identity client ID")
+            
         client = AIProjectClient(endpoint=self.project_endpoint, credential=cred)
         
         try:
