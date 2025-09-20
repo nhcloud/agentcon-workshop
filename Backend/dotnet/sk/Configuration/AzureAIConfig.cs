@@ -24,14 +24,13 @@ public class AzureOpenAIConfig
 public class AzureAIFoundryConfig
 {
     public string? ProjectEndpoint { get; set; }
-    public string? ApiKey { get; set; }
+    public string? ManagedIdentityClientId { get; set; } // For Managed Identity authentication
     public string? PeopleAgentId { get; set; }
     public string? KnowledgeAgentId { get; set; }
     
     public bool IsConfigured()
     {
-        return !string.IsNullOrEmpty(ProjectEndpoint) && 
-               !string.IsNullOrEmpty(ApiKey);
+        return !string.IsNullOrEmpty(ProjectEndpoint);
     }
     
     public bool HasAgentIds()

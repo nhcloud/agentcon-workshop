@@ -3,7 +3,6 @@ using DotNetSemanticKernel.Services;
 using Microsoft.SemanticKernel;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerUI;
-using System.Text;
 using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -103,6 +102,7 @@ builder.Services.Configure<AzureAIConfig>(options =>
         options.AzureAIFoundry = new AzureAIFoundryConfig
         {
             ProjectEndpoint = projectEndpoint,
+            ManagedIdentityClientId = Environment.GetEnvironmentVariable("MANAGED_IDENTITY_CLIENT_ID"), // Add Managed Identity Client ID support
             PeopleAgentId = peopleAgentId,
             KnowledgeAgentId = knowledgeAgentId
         };
