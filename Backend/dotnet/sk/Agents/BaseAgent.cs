@@ -504,6 +504,8 @@ public class AzureAIFoundryService : IChatCompletionService
             // Determine thread for the current conversation
             string? conversationId = GetCurrentConversationId();
             string threadId;
+            bool isNewThread = false;
+            
             if (!string.IsNullOrWhiteSpace(conversationId))
             {
                 var key = $"{_endpoint}::{_agentId}::{conversationId}";
@@ -512,6 +514,7 @@ public class AzureAIFoundryService : IChatCompletionService
                     var threadResponse = agentsClient.Threads.CreateThread();
                     threadId = threadResponse.Value.Id;
                     s_threadByAgentConversation[key] = threadId;
+                    isNewThread = true;
                     _logger.LogDebug("Created new thread {ThreadId} for conversation {ConversationId} (key: {Key})", threadId, conversationId, key);
                 }
                 else
@@ -524,10 +527,47 @@ public class AzureAIFoundryService : IChatCompletionService
                 // Fallback: no conversation id provided, create a new thread each time
                 var threadResponse = agentsClient.Threads.CreateThread();
                 threadId = threadResponse.Value.Id;
+                isNewThread = true;
                 _logger.LogDebug("Created thread {ThreadId} without conversation context", threadId);
             }
 
-            // Add the user message to the thread
+            // If this is a new thread, add all chat history messages to establish context
+            if (isNewThread && chatHistory.Count > 1)
+            {
+                _logger.LogDebug("Adding {Count} chat history messages to new thread {ThreadId}", chatHistory.Count, threadId);
+                
+                // Add all messages except the last one (which we'll add separately)
+                foreach (var historyMessage in chatHistory.Take(chatHistory.Count - 1))
+                {
+                    // Only add User and Assistant messages (skip System messages as they're handled differently in Azure AI Foundry)
+                    if (historyMessage.Role == AuthorRole.User)
+                    {
+                        var content = historyMessage.Content ?? string.Empty;
+                        if (!string.IsNullOrWhiteSpace(content))
+                        {
+                            try
+                            {
+                                agentsClient.Messages.CreateMessage(
+                                    threadId,
+                                    MessageRole.User,
+                                    content,
+                                    cancellationToken: cancellationToken);
+                                
+                                _logger.LogDebug("Added User message to thread {ThreadId}: {Content}", 
+                                    threadId, content.Substring(0, Math.Min(100, content.Length)));
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to add User message to thread {ThreadId}", threadId);
+                            }
+                        }
+                    }
+                    // Note: For assistant messages, we can't directly add them to the thread as they come from the agent itself
+                    // The thread will maintain its own conversation history through runs
+                }
+            }
+
+            // Add the current user message to the thread
             var messageResponse = agentsClient.Messages.CreateMessage(
                 threadId,
                 MessageRole.User,
