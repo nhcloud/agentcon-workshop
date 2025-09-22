@@ -43,8 +43,8 @@ Controls basic application behavior:
 - **Optional**: AWS Bedrock, Google Gemini
 
 #### LangChain (langchain)  
-- **Primary**: Azure AI Inference API for LangChain compatibility
-- **Fallback**: Azure OpenAI via LangChain adapters
+- **Primary**: Azure OpenAI with LangChain adapters
+- **Fallback**: Azure AI Foundry agents
 - **Optional**: AWS Bedrock, Google Gemini via LangChain
 
 ### Framework-Specific Features
@@ -59,9 +59,10 @@ AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4
 
 #### LangChain
 ```env
-# LangChain AI inference configuration  
-AZURE_INFERENCE_ENDPOINT=https://your-resource.cognitiveservices.azure.com/models
-AZURE_INFERENCE_CREDENTIAL=your_credential
+# Azure OpenAI configuration (same as SK)
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
+AZURE_OPENAI_API_KEY=your_key
+AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4
 
 # LangChain-specific features
 LANGCHAIN_TRACING_V2=true
@@ -102,10 +103,6 @@ AZURE_FOUNDRY_KNOWLEDGE_AGENT_ID=asst_your_knowledge_agent
 
 #### Additional Configuration (LangChain)
 ```env
-# LangChain-specific Azure AI Inference
-AZURE_INFERENCE_ENDPOINT=https://your-resource.cognitiveservices.azure.com/models
-AZURE_INFERENCE_CREDENTIAL=your_credential
-
 # Enable AI features
 GROUP_CHAT_AI_SPEAKER_SELECTION=true
 GROUP_CHAT_AI_SUMMARIZATION=true
@@ -119,7 +116,7 @@ python -c "from dotenv import load_dotenv; load_dotenv(); import os; print('SK c
 
 # Test LC configuration  
 cd Backend/python/langchain
-python -c "from dotenv import load_dotenv; load_dotenv(); import os; print('LC config loaded:', bool(os.getenv('AZURE_INFERENCE_ENDPOINT')))"
+python -c "from dotenv import load_dotenv; load_dotenv(); import os; print('LC config loaded:', bool(os.getenv('AZURE_OPENAI_ENDPOINT')))"
 ```
 
 ## 🔧 Advanced Configuration
