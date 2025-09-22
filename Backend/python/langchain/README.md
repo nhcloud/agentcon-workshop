@@ -4,6 +4,22 @@ A comprehensive LangChain-based implementation of the multi-agent system, provid
 
 ## 🚀 Quick Start
 
+### Option 1: Workshop Notebook (Easiest for Learning)
+
+1. **Open the workshop notebook:**
+   ```bash
+   # Open workshop_langchain_agents.ipynb in Jupyter or VS Code
+   ```
+
+2. **Run the first cell** (Section 0: Environment Setup)
+   - Automatically installs all required packages
+   - Checks for environment variables
+   - Includes mock implementations if no Azure credentials
+
+3. **Continue with the workshop** - Learn concepts hands-on!
+
+### Option 2: Production API Setup
+
 ### Prerequisites
 - Python 3.8+
 - Azure OpenAI Service access
@@ -37,6 +53,22 @@ A comprehensive LangChain-based implementation of the multi-agent system, provid
 The API will be available at:
 - **API**: `http://localhost:8000`
 - **API Docs**: `http://localhost:8000/docs`
+
+## 🎓 Workshop Learning Path
+
+### No Azure Credentials? No Problem!
+The workshop includes **mock implementations** so you can:
+- ✅ Learn all the concepts and patterns
+- ✅ Understand LangChain ecosystem and tools
+- ✅ See enterprise features in action
+- ✅ Compare frameworks and make informed choices
+
+### What You'll Learn
+1. **Basic LangChain Agents** - Core concepts and chain patterns
+2. **Azure Integration** - Multi-provider support and Azure services
+3. **Advanced Features** - Tools, memory, and retrieval systems
+4. **Enterprise Deployment** - Azure AI Foundry for production
+5. **Framework Comparison** - LangChain vs Semantic Kernel guidance
 
 ## 📚 Features
 

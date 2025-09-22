@@ -4,6 +4,22 @@ A comprehensive Semantic Kernel-based implementation of the multi-agent system, 
 
 ## 🚀 Quick Start
 
+### Option 1: Workshop Notebook (Easiest for Learning)
+
+1. **Open the workshop notebook:**
+   ```bash
+   # Open workshop_semantic_kernel_agents.ipynb in Jupyter or VS Code
+   ```
+
+2. **Run the first cell** (Section 0: Environment Setup)
+   - Automatically installs all required packages
+   - Checks for environment variables
+   - Includes mock implementations if no Azure credentials
+
+3. **Continue with the workshop** - Learn concepts hands-on!
+
+### Option 2: Production API Setup
+
 ### Prerequisites
 - Python 3.8+
 - Azure OpenAI Service access
@@ -37,6 +53,21 @@ A comprehensive Semantic Kernel-based implementation of the multi-agent system, 
 The API will be available at:
 - **API**: `http://localhost:8001`
 - **API Docs**: `http://localhost:8001/docs`
+
+## 🎓 Workshop Learning Path
+
+### No Azure Credentials? No Problem!
+The workshop includes **mock implementations** so you can:
+- ✅ Learn all the concepts and patterns
+- ✅ Understand Semantic Kernel architecture
+- ✅ See enterprise features in action
+- ✅ Progress from basic to advanced agents
+
+### What You'll Learn
+1. **Basic Semantic Kernel Agents** - Core concepts and patterns
+2. **Azure Integration** - Multi-provider support and Azure services
+3. **Advanced Features** - Plugins, memory, and context management
+4. **Enterprise Deployment** - Azure AI Foundry for production
 
 ## 📚 Features
 

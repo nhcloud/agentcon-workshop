@@ -6,23 +6,32 @@ A comprehensive workshop for building sophisticated AI agent applications using 
 
 Choose your preferred platform and follow the specific setup guide:
 
-### 🐍 **Python Developers**
+### 🐍 **Python - LangChain**
 ```bash
-cd Backend/python
-# See: Backend/python/README.md for framework selection
+cd Backend/python/langchain
+# Follow setup in README.md
 ```
-**Frameworks**: LangChain, Semantic Kernel  
-**Port**: 8000 (all Python implementations)  
-📚 **[Complete Python Setup Guide →](Backend/python/README.md)**
+**Framework**: LangChain  
+**Port**: 8000  
+📚 **[Complete LangChain Setup Guide →](Backend/python/langchain/README.md)**
 
-### 🔷 **.NET Developers**  
+### 🐍 **Python - Semantic Kernel**
 ```bash
-cd Backend/dotnet/sk
-# See: Backend/dotnet/README.md for setup
+cd Backend/python/sk
+# Follow setup in README.md  
 ```
 **Framework**: Semantic Kernel  
 **Port**: 8000  
-📚 **[Complete .NET Setup Guide →](Backend/dotnet/README.md)**
+📚 **[Complete Python SK Setup Guide →](Backend/python/sk/README.md)**
+
+### 🔷 **.NET - Semantic Kernel**  
+```bash
+cd Backend/dotnet/sk
+# Follow setup in README.md
+```
+**Framework**: Semantic Kernel  
+**Port**: 8000  
+📚 **[Complete .NET Setup Guide →](Backend/dotnet/sk/README.md)**
 
 ### 🌐 **Frontend** (All Platforms)
 ```bash
@@ -52,15 +61,15 @@ This workshop demonstrates modern multi-agent patterns:
 
 ## 📚 Documentation
 
-- **[🐍 Python Implementation](Backend/python/README.md)** - LangChain & Semantic Kernel
-- **[🔷 .NET Implementation](Backend/dotnet/README.md)** - Semantic Kernel  
-- **[📖 Installation Guide](docs/INSTALL.md)** - Detailed setup instructions
+- **[🐍 Python LangChain](Backend/python/langchain/README.md)** - Complete LangChain guide
+- **[� Python Semantic Kernel](Backend/python/sk/README.md)** - Complete Python SK guide  
+- **[� .NET Semantic Kernel](Backend/dotnet/sk/README.md)** - Complete .NET guide
 - **[⚙️ Environment Guide](docs/ENVIRONMENT_GUIDE.md)** - Azure configuration
 - **[👥 Group Chat Guide](docs/GROUP_CHAT.md)** - Multi-agent patterns
 
 ## 🎯 Learning Path
 
-1. **Choose Platform**: Python or .NET (see platform READMEs)
+1. **Choose Platform**: LangChain, Python SK, or .NET SK (see specific READMEs)
 2. **Follow Setup**: Platform-specific installation guides
 3. **Configure Azure**: Environment and credentials setup  
 4. **Run Application**: Start your chosen implementation on port 8000
@@ -72,4 +81,4 @@ This workshop demonstrates modern multi-agent patterns:
 
 ---
 
-**🚀 Ready to start?** Pick your platform above and follow the setup guide!
+**🚀 Ready to start?** Pick your platform above and follow the specific setup guide!
