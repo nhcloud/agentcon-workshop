@@ -1,202 +1,91 @@
 # Python AI Agent System
 
-A modern Python implementation of the multi-agent system supporting both LangChain and Semantic Kernel frameworks with a unified architecture.
+A modern Python implementation of the multi-agent system supporting both **LangChain** and **Semantic Kernel** frameworks.
 
-## Overview
+## 🚀 Quick Framework Selection
 
-This Python implementation provides two powerful AI agent frameworks:
+Choose your preferred AI framework:
 
-- 🦜 **LangChain Implementation**: Industry-standard framework with extensive ecosystem
-- 🔧 **Semantic Kernel Implementation**: Microsoft's AI orchestration framework
-- 🏗️ **Shared Architecture**: Common components and interfaces for consistency
-- ⚡ **FastAPI Backend**: High-performance async API with automatic documentation
-- 🔄 **Flexible Routing**: Pattern-based and LLM-powered agent routing
-- 💾 **Session Management**: Multiple storage backends (memory, file, Redis)
-- 📊 **Health Monitoring**: Built-in system monitoring and health checks
+### 🦜 **LangChain Implementation**
+**Best for**: Rapid prototyping, extensive integrations, community ecosystem
 
-## Prerequisites
-
-- Python 3.13+
-- pip package manager
-- Azure OpenAI Service access
-- Azure AI Project Service (for advanced agents)
-
-## Quick Start
-
-### 1. Environment Setup
-
-```bash
-# Create and activate virtual environment
-python -m venv venv
-
-# Windows
-.\venv\Scripts\activate
-
-# macOS/Linux
-source venv/bin/activate
-```
-
-### 2. Choose Your Implementation
-
-#### Option A: LangChain Implementation
 ```bash
 cd Backend/python/langchain
-pip install -r requirements.txt
+# See detailed setup: langchain/README.md
 ```
 
-#### Option B: Semantic Kernel Implementation
+- ✅ Rich ecosystem of tools and integrations
+- ✅ Extensive documentation and community support  
+- ✅ Advanced retrieval-augmented generation (RAG)
+- ✅ Chain-based workflow composition
+- 🚀 **[Complete LangChain Setup Guide →](langchain/README.md)**
+
+### 🔧 **Semantic Kernel Implementation**  
+**Best for**: Enterprise applications, Microsoft ecosystem, structured planning
+
 ```bash
 cd Backend/python/sk
-pip install -r requirements.txt
+# See detailed setup: sk/README.md
 ```
 
-### 3. Configure Environment
+- ✅ Microsoft-backed with enterprise support
+- ✅ Native Azure integration and type safety
+- ✅ Structured plugin architecture
+- ✅ Built-in planning capabilities
+- 🚀 **[Complete Semantic Kernel Setup Guide →](sk/README.md)**
 
-```bash
-# Copy environment template
-cp ../env.template ../.env
+## 📊 Framework Comparison
 
-# Edit .env file with your Azure credentials
-```
+| Feature | LangChain | Semantic Kernel |
+|---------|-----------|-----------------|
+| **Learning Curve** | ✅ Gentle | 🔶 Structured |
+| **Ecosystem** | ✅ Extensive | 🔶 Growing |
+| **Enterprise Focus** | 🔶 Community | ✅ Microsoft-backed |
+| **Azure Integration** | 🔶 Via adapters | ✅ Native |
+| **Type Safety** | 🔶 Dynamic | ✅ Strong typing |
+| **Planning** | 🔶 External tools | ✅ Built-in |
 
-Configure your `.env` file:
-```env
-# Azure OpenAI Configuration
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_API_KEY=your_api_key_here
-AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini
-AZURE_OPENAI_API_VERSION=2024-02-01
+## 🏗️ Shared Architecture
 
-# Azure AI Foundry Configuration  
-PROJECT_ENDPOINT=https://your-resource.services.ai.azure.com/api/projects/your-project
-PEOPLE_AGENT_ID=asst-your-people-agent-id
-KNOWLEDGE_AGENT_ID=asst-your-knowledge-agent-id
-
-# Application Configuration
-FRONTEND_URL=http://localhost:3000
-LOG_LEVEL=INFO
-SESSION_STORAGE_TYPE=file
-```
-
-### 4. Run the Application
-
-#### LangChain Implementation:
-```bash
-cd Backend/python/langchain
-uvicorn main:app --reload
-```
-
-#### Semantic Kernel Implementation:
-```bash
-cd Backend/python/sk
-uvicorn main:app --reload
-```
-
-The API will be available at:
-- **API**: `http://localhost:8000`
-- **API Docs**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-
-## Project Structure
+Both implementations share common components:
 
 ```
 Backend/python/
-├── shared/                    # Common Libraries & Interfaces
-│   ├── core/                 # Base classes and interfaces
-│   │   ├── agent.py         # Base agent interface
-│   │   ├── router.py        # Routing interface
-│   │   └── session.py       # Session management
-│   ├── agents/              # Base agent implementations
-│   ├── config/              # Configuration management
-│   ├── routers/             # Routing implementations
-│   └── sessions/            # Session storage backends
-│
-├── langchain/               # LangChain Implementation
-│   ├── agents/             # LangChain-specific agents
-│   │   ├── __init__.py
-│   │   └── langchain_agents.py
-│   ├── routers/            # LangChain-specific routers
-│   │   ├── __init__.py
-│   │   └── langchain_router.py
-│   ├── main.py             # FastAPI application
-│   ├── config.yml          # Configuration file
-│   ├── requirements.txt    # Dependencies
-│   ├── README.md           # LangChain-specific docs
-│   ├── SETUP_README.md     # Setup instructions
-│   ├── example_group_chat.py # Group chat demo
-│   └── workshop_langchain_agents.ipynb # Interactive tutorial
-│
-├── sk/                     # Semantic Kernel Implementation
-│   ├── agents/             # SK-specific agents
-│   │   ├── __init__.py
-│   │   └── sk_agents.py
-│   ├── routers/            # SK-specific routers
-│   │   ├── __init__.py
-│   │   └── sk_router.py
-│   ├── main.py             # FastAPI application
-│   ├── config.yml          # Configuration file
-│   ├── requirements.txt    # Dependencies
-│   ├── SETUP_README.md     # Setup instructions
-│   ├── example_group_chat.py # Group chat demo
-│   └── workshop_semantic_kernel_agents.ipynb # Interactive tutorial
-│
-├── env.template            # Environment variables template
-├── .gitignore             # Python-specific ignore rules
-├── check_config.py        # Configuration validator
-└── validate_env.py        # Environment checker
+├── shared/              # Common interfaces and utilities
+├── langchain/          # LangChain-specific implementation
+├── sk/                 # Semantic Kernel-specific implementation  
+├── env.template        # Environment configuration template
+└── README.md          # This file - framework selection guide
 ```
 
-## Framework Comparison
+## ⚡ Quick Start
 
-### LangChain Implementation
-**Best for**: Rapid prototyping, extensive integrations, community-driven features
+1. **Choose your framework** (see comparison above)
+2. **Follow the specific setup guide**:
+   - **LangChain**: [langchain/README.md](langchain/README.md)
+   - **Semantic Kernel**: [sk/README.md](sk/README.md)
+3. **Configure environment**: Both use `env.template`
 
-**Key Features**:
-- Rich ecosystem of tools and integrations
-- Extensive documentation and community support
-- Advanced retrieval-augmented generation (RAG) capabilities
-- Built-in support for many AI providers
-- Chain-based workflow composition
+## 🎯 Need Help Choosing?
 
-**Use Cases**:
-- Complex document processing workflows
-- Multi-step reasoning tasks
-- Integration with external tools and APIs
-- Rapid prototyping of AI applications
+- **New to AI development?** → Start with **LangChain**
+- **Enterprise/Production app?** → Go with **Semantic Kernel**  
+- **Rich ecosystem needed?** → Choose **LangChain**
+- **Microsoft Azure focus?** → Choose **Semantic Kernel**
+- **Want to try both?** → Both can run simultaneously (different ports)
 
-### Semantic Kernel Implementation
-**Best for**: Enterprise applications, Microsoft ecosystem, structured planning
+## 📚 Next Steps
 
-**Key Features**:
-- Microsoft-backed framework with enterprise support
-- Native Azure integration
-- Structured plugin architecture
-- Built-in planning capabilities
-- Type-safe development experience
+1. Review framework comparison above
+2. Click through to specific README for detailed setup
+3. Both frameworks include interactive Jupyter notebooks for learning
+4. Check the [main project README](../../README.md) for overall architecture
 
-**Use Cases**:
-- Enterprise AI applications
-- Microsoft ecosystem integration
-- Structured business workflows
-- Reliable, type-safe AI orchestration
+---
 
-## Interactive Learning
-
-### Jupyter Notebooks
-
-Both implementations include interactive Jupyter notebooks:
-
-**LangChain Tutorial**:
-```bash
-cd Backend/python/langchain
-jupyter notebook workshop_langchain_agents.ipynb
-```
-
-**Semantic Kernel Tutorial**:
-```bash
-cd Backend/python/sk
-jupyter notebook workshop_semantic_kernel_agents.ipynb
-```
+**🔗 Framework-Specific Documentation:**
+- **[LangChain Implementation →](langchain/README.md)**
+- **[Semantic Kernel Implementation →](sk/README.md)**
 
 The notebooks provide:
 - Step-by-step setup instructions
@@ -488,9 +377,9 @@ curl http://localhost:8000/system/stats
 ## Additional Resources
 
 - [LangChain Documentation](https://python.langchain.com/)
-- [Semantic Kernel Documentation](https://docs.microsoft.com/en-us/semantic-kernel/)
+- [Semantic Kernel Documentation](https://learn.microsoft.com/en-us/semantic-kernel/)
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [Azure OpenAI Documentation](https://docs.microsoft.com/en-us/azure/cognitive-services/openai/)
+- [Azure OpenAI Documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/)
 
 ## Contributing
 

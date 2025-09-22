@@ -244,10 +244,10 @@ python main.py
 
 ## 📚 Additional Resources
 
-- [Azure OpenAI Documentation](https://docs.microsoft.com/azure/openai/)
-- [Azure AI Foundry Guide](https://docs.microsoft.com/azure/ai-foundry/)
+- [Azure OpenAI Documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/)
+- [Azure AI Foundry Guide](https://learn.microsoft.com/en-us/azure/ai-foundry/)
 - [LangChain Azure Integration](https://python.langchain.com/docs/integrations/providers/azure/)
-- [Semantic Kernel Documentation](https://learn.microsoft.com/semantic-kernel/)
+- [Semantic Kernel Documentation](https://learn.microsoft.com/en-us/semantic-kernel/)
 
 ## 🔄 Migration Guide
 

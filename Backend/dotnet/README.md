@@ -1,103 +1,149 @@
-# .NET AI Agent System
+# .NET Semantic Kernel Implementation
 
-A modern .NET 9 implementation of the multi-agent system using Semantic Kernel framework with ASP.NET Core Web API.
+Enterprise-ready .NET 9 implementation using Semantic Kernel framework with ASP.NET Core Web API.
 
-## Overview
+## 🚀 Quick Start
 
-This .NET implementation provides a professional, enterprise-ready AI agent system with:
-
-- 🚀 **Modern .NET 9**: Latest C# features and performance optimizations
-- 🤖 **Semantic Kernel Integration**: Microsoft's official AI orchestration framework
-- 🌐 **ASP.NET Core Web API**: High-performance REST API with Swagger documentation
-- 🔄 **Dependency Injection**: Clean architecture with IoC container
-- ⚡ **Async/Await**: Non-blocking operations for optimal performance
-- 📊 **Swagger/OpenAPI**: Interactive API documentation
-- 🔧 **Configuration Management**: Environment-based configuration with validation
-- 📝 **Comprehensive Logging**: Structured logging with Serilog
-- 🧪 **Interactive Testing**: HTTP files and Jupyter notebook support
-
-## Prerequisites
-
+### Prerequisites
 - .NET 9 SDK
 - Visual Studio 2022 (recommended) or VS Code
 - Azure OpenAI Service access
-- Azure AI Project Service (optional, for advanced agents)
 
-## Quick Start
+### Setup
 
-### 1. Setup and Configuration
+1. **Navigate to project:**
+   ```bash
+   cd Backend/dotnet/sk
+   dotnet restore
+   ```
 
-```bash
-# Navigate to the .NET project
-cd Backend/dotnet/sk
+2. **Configure environment:**
+   ```bash
+   # Edit .env file with your Azure credentials
+   ```
 
-# Restore dependencies
-dotnet restore
-```
+3. **Run application:**
+   ```bash
+   dotnet watch run
+   # API: http://localhost:8002
+   # Swagger: http://localhost:8002/swagger
+   ```
 
-### 2. Configure Environment
+## 📚 Features
 
-Copy the environment template and configure your Azure credentials:
+### .NET Semantic Kernel
+- **Native Azure Integration**: Optimized for Azure OpenAI
+- **Enterprise Architecture**: ASP.NET Core with dependency injection
+- **Type Safety**: Strong typing and structured development
+- **Performance**: Async/await and modern .NET optimizations
 
-```bash
-# Copy and edit .env file
-cp .env.example .env
-```
+### Learning Materials
+- **Interactive Notebook**: `workshop_dotnet_semantic_kernel.ipynb`
+- **HTTP Test Files**: `test-workshop.http` for API testing
+- **Swagger Documentation**: Interactive API exploration
 
-Edit `.env` with your Azure OpenAI credentials:
+## ⚙️ Configuration
+
+### Environment Variables
 ```env
+# Azure OpenAI (Required)
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_API_KEY=your_api_key_here
+AZURE_OPENAI_API_KEY=your_api_key
 AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini
-AZURE_OPENAI_API_VERSION=2024-02-01
 
-# Optional: Azure AI Foundry project configuration
+# Azure AI Foundry (Optional)
 PROJECT_ENDPOINT=https://your-resource.services.ai.azure.com/api/projects/your-project
 PEOPLE_AGENT_ID=asst-your-people-agent-id
 KNOWLEDGE_AGENT_ID=asst-your-knowledge-agent-id
 
-# Application settings
-FRONTEND_URL=http://localhost:3000
-LOG_LEVEL=Information
+# Application
+FRONTEND_URL=http://localhost:3001
+PORT=8002
 ```
 
-### 3. Run the Application
+## 🏗️ Architecture
 
-```bash
-# Development mode with hot reload
-dotnet watch run
-
-# Or standard run
-dotnet run
-```
-
-The API will be available at:
-- **API**: `http://localhost:8000`
-- **Swagger UI**: `http://localhost:8000/swagger`
-
-## Project Structure
-
+### Project Structure
 ```
 Backend/dotnet/sk/
-├── Controllers/           # API Controllers
-│   ├── AgentsController.cs      # Agent management endpoints
-│   ├── ChatController.cs        # Chat functionality
-│   └── GroupChatController.cs   # Group chat features
-├── Services/             # Business Logic Services
-│   ├── AgentService.cs          # Agent orchestration
-│   ├── GroupChatService.cs      # Group chat management
-│   └── SessionManager.cs       # Session handling
-├── Agents/               # Agent Implementations
-│   ├── BaseAgent.cs             # Base agent class
-│   └── SpecificAgents.cs        # Specialized agents
-├── Models/               # Data Transfer Objects
-│   └── ChatModels.cs            # Request/response models
-├── Configuration/        # Configuration Classes
-│   └── AzureAIConfig.cs         # Azure service configuration
-├── Properties/           # Project Settings
-│   └── launchSettings.json      # Development launch profiles
-├── Program.cs            # Application entry point
-├── appsettings.json      # Application configuration
+├── Controllers/           # API endpoints
+├── Services/             # Business logic  
+├── Agents/               # Agent implementations
+├── Models/               # Data models
+├── Configuration/        # Azure configuration
+├── Program.cs            # Application entry
+└── appsettings.json      # Configuration
+```
+
+### Key Components
+- **AgentService**: Core agent orchestration
+- **GroupChatService**: Multi-agent conversations  
+- **SessionManager**: State and session management
+- **AzureAIConfig**: Centralized Azure configuration
+
+## 🚀 API Endpoints
+
+### Core Endpoints
+- `POST /api/agents/{agentType}/chat` - Chat with agents
+- `POST /api/agents/group-chat` - Multi-agent conversations
+- `GET /api/agents/types` - Available agent types
+- `GET /health` - Health check
+
+## 🎓 Development
+
+### Interactive Learning
+```bash
+# Open Jupyter notebook
+workshop_dotnet_semantic_kernel.ipynb
+
+# Test APIs with HTTP files  
+test-workshop.http
+```
+
+### Custom Agents
+Extend the base agent classes:
+```csharp
+public class CustomAgent : BaseAgent
+{
+    public CustomAgent(IConfiguration config) : base(config)
+    {
+        // Custom implementation
+    }
+}
+```
+
+## 🔧 Advanced Features
+
+- **Dependency Injection**: Clean IoC architecture
+- **Swagger/OpenAPI**: Auto-generated documentation  
+- **Structured Logging**: Production-ready logging
+- **Hot Reload**: Fast development workflow
+- **Azure Integration**: Native Azure service support
+
+## 📖 Related Documentation
+
+- **[Main README](../../README.md)** - Project overview
+- **[Environment Guide](../../docs/ENVIRONMENT_GUIDE.md)** - Azure configuration
+- **[Group Chat Guide](../../docs/GROUP_CHAT.md)** - Multi-agent patterns
+
+## 🐛 Troubleshooting
+
+### Common Issues
+1. **.NET SDK**: Ensure .NET 9 is installed
+2. **Azure Credentials**: Verify environment variables
+3. **Port Conflicts**: Change PORT in configuration
+
+### Getting Help
+- Review configuration in `appsettings.json`
+- Check Azure credentials in `.env` file
+- Use Swagger UI for API testing
+
+## 🎯 Next Steps
+
+1. **Run Examples**: Try the interactive notebook
+2. **Test APIs**: Use HTTP files or Swagger UI
+3. **Build Custom**: Create your own agents
+4. **Deploy**: Use Azure App Service for production
 ├── appsettings.Development.json # Development overrides
 ├── .env                  # Environment variables (create from template)
 ├── test-workshop.http    # API testing collection
@@ -372,10 +418,10 @@ curl http://localhost:8000/api/system/stats
 
 ## Additional Resources
 
-- [Semantic Kernel Documentation](https://docs.microsoft.com/en-us/semantic-kernel/)
-- [ASP.NET Core Documentation](https://docs.microsoft.com/en-us/aspnet/core/)
-- [Azure OpenAI Service Documentation](https://docs.microsoft.com/en-us/azure/cognitive-services/openai/)
-- [.NET 9 Documentation](https://docs.microsoft.com/en-us/dotnet/)
+- [Semantic Kernel Documentation](https://learn.microsoft.com/en-us/semantic-kernel/)
+- [ASP.NET Core Documentation](https://learn.microsoft.com/en-us/aspnet/core/)
+- [Azure OpenAI Service Documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/)
+- [.NET 9 Documentation](https://learn.microsoft.com/en-us/dotnet/)
 
 ## Contributing
 
