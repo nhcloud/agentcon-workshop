@@ -121,54 +121,92 @@ az ai project list
 
 ## Running the Application
 
-1. Start the backend server (choose one):
+### Backend Options
 
-   **For Semantic Kernel implementation:**
-   ```bash
-   cd backend/python/sk
-   uvicorn main:app --reload
-   ```
+Choose one implementation based on your preference:
 
-   **For LangChain implementation:**
-   ```bash
-   cd backend/python/langchain
-   uvicorn main:app --reload
-   ```
-
-2. Start the frontend development server:
+#### 🐍 Python Implementations
 ```bash
-# From the frontend directory
+# LangChain Framework
+cd Backend/python/langchain
+uvicorn main:app --reload
+
+# Semantic Kernel Framework  
+cd Backend/python/sk
+uvicorn main:app --reload
+```
+
+#### 🔷 .NET Implementation
+```bash
+# .NET 9 with Semantic Kernel
+cd Backend/dotnet/sk
+dotnet watch run
+```
+
+### Frontend
+```bash
 cd frontend
 npm start
 ```
 
-3. Access the application at `http://localhost:3000`
+### Access Points
+- **Frontend**: `http://localhost:3000`
+- **API Documentation**: `http://localhost:8000/docs`
+- **API ReDoc**: `http://localhost:8000/redoc`
+
+📚 **For detailed setup instructions, see the framework-specific README files:**
+- **Python**: [Backend/python/README.md](Backend/python/README.md)
+- **.NET**: [Backend/dotnet/README.md](Backend/dotnet/README.md)
 
 ## Quick Start
 
-For workshop attendees who want to get started quickly:
+Choose your preferred implementation and follow the dedicated setup guide:
 
-1. **Clone and setup**:
-   ```bash
-   git clone <repository-url>
-   cd agents-workshop
-   cp backend/python/env.template backend/python/.env
-   ```
+### 🐍 Python Developers
+**Choose your AI framework:**
 
-2. **Configure Azure credentials** in `backend/python/.env`
+**Option 1: LangChain** (Recommended for rapid prototyping)
+```bash
+# See detailed setup guide
+📚 Backend/python/README.md
 
-3. **Run Semantic Kernel implementation**:
-   ```bash
-   cd backend/python/sk
-   pip install -r requirements.txt
-   uvicorn main:app --reload
-   ```
+# Quick start
+cd Backend/python/langchain
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
 
-4. **Run frontend** (in new terminal):
-   ```bash
-   cd frontend
-   npm install && npm start
-   ```
+**Option 2: Semantic Kernel** (Recommended for enterprise)
+```bash
+# See detailed setup guide  
+📚 Backend/python/README.md
+
+# Quick start
+cd Backend/python/sk
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+### 🔷 .NET Developers
+**Semantic Kernel with .NET 9:**
+```bash
+# See detailed setup guide
+📚 Backend/dotnet/README.md
+
+# Quick start
+cd Backend/dotnet/sk
+dotnet restore
+dotnet watch run
+```
+
+### 🌐 Frontend Developers
+**React Application:**
+```bash
+cd frontend
+npm install && npm start
+```
+
+📚 **Need detailed instructions?** See the framework-specific README files above for comprehensive setup guides, configuration options, and troubleshooting.
 
 ## API Endpoints
 
@@ -229,10 +267,6 @@ agents-workshop/
 │   │   ├── core/                  #    Core functionality
 │   │   └── sessions/              #    Session handling
 │   │
-│   ├── 📋 examples/               # Configuration templates
-│   │   ├── sk/                    #    Semantic Kernel configs
-│   │   └── langchain/             #    LangChain configs
-│   │
 │   ├── ⚙️ env.template            # 👈 COPY TO .env (configure Azure keys)
 │   ├── check_config.py            #    Validate your setup
 │   └── validate_env.py            #    Check environment
@@ -260,22 +294,29 @@ agents-workshop/
 
 ### 🎯 Workshop Navigation Guide
 
-**For Python Developers:**
-1. 📚 Read [docs/INSTALL.md](docs/INSTALL.md) for setup
-2. ⚙️ Copy `backend/python/env.template` to `backend/python/.env`
-3. 🚀 Choose your framework:
-   - **Semantic Kernel**: `cd backend/python/sk` → `uvicorn main:app --reload`
-   - **LangChain**: `cd backend/python/langchain` → `uvicorn main:app --reload`
-4. 📓 Open the `.ipynb` notebook for interactive learning
+**🐍 For Python Developers:**
+1. 📚 **Start here**: [Backend/python/README.md](Backend/python/README.md) - Complete Python setup guide
+2. � **Choose your framework**:
+   - **LangChain**: Rapid prototyping, extensive ecosystem
+   - **Semantic Kernel**: Enterprise-ready, Microsoft-backed
+3. 📓 **Interactive learning**: Use the framework-specific Jupyter notebooks
+4. ⚙️ **Configuration**: Copy `backend/python/env.template` to `backend/python/.env`
 
-**For .NET Developers:**
-1. 📚 Read [docs/INSTALL.md](docs/INSTALL.md) for setup
-2. 🔷 Open `backend/dotnet/agents-workshop.sln` in Visual Studio
-3. 📓 Start with the notebook: `workshop_dotnet_semantic_kernel.ipynb`
+**🔷 For .NET Developers:**
+1. 📚 **Start here**: [Backend/dotnet/README.md](Backend/dotnet/README.md) - Complete .NET setup guide
+2. � **Open project**: `backend/dotnet/agentcon-workshop.sln` in Visual Studio
+3. 📓 **Interactive tutorial**: `workshop_dotnet_semantic_kernel.ipynb`
+4. 🔧 **Quick start**: `dotnet watch run` for hot reload
 
-**For Frontend Developers:**
+**🌐 For Frontend Developers:**
 1. 🌐 `cd frontend` → `npm install` → `npm start`
 2. 📄 Read `PROFESSIONAL_UI_README.md` for UI details
+3. 🔗 **API Integration**: Connect to any backend implementation
+
+**📚 For Workshop Instructors:**
+1. 📖 **Documentation**: [docs/](docs/) directory for all guides
+2. 🎯 **Installation**: [docs/INSTALL.md](docs/INSTALL.md) for complete setup
+3. 🌐 **Environment**: [docs/ENVIRONMENT_GUIDE.md](docs/ENVIRONMENT_GUIDE.md) for Azure configuration
 
 ## Development
 
@@ -345,13 +386,22 @@ Common issues and solutions:
 
 ## 📚 Documentation
 
-For detailed documentation, see the [docs/](docs/) directory:
+### Framework-Specific Guides
+- **[🐍 Python Implementation](Backend/python/README.md)** - Complete Python setup (LangChain & Semantic Kernel)
+- **[🔷 .NET Implementation](Backend/dotnet/README.md)** - Complete .NET setup (Semantic Kernel)
 
-- **[Installation Guide](docs/INSTALL.md)** - Complete setup instructions
-- **[Environment Guide](docs/ENVIRONMENT_GUIDE.md)** - Environment configuration
-- **[Group Chat Guide](docs/GROUP_CHAT.md)** - Multi-agent conversations
-- **[Python Examples](backend/python/examples/README.md)** - Python setup and configuration
-- **[.NET Examples](backend/dotnet/examples/README.md)** - .NET setup and configuration
+### Workshop Documentation
+- **[📖 Installation Guide](docs/INSTALL.md)** - Complete setup instructions
+- **[⚙️ Environment Guide](docs/ENVIRONMENT_GUIDE.md)** - Azure configuration and credentials
+- **[👥 Group Chat Guide](docs/GROUP_CHAT.md)** - Multi-agent conversation patterns
+
+### Framework Comparison
+| Feature | Python LangChain | Python SK | .NET SK |
+|---------|------------------|-----------|---------|
+| **Best For** | Rapid prototyping | Python enterprise | .NET ecosystem |
+| **Ecosystem** | Extensive | Growing | Microsoft-backed |
+| **Documentation** | [Backend/python/README.md](Backend/python/README.md) | [Backend/python/README.md](Backend/python/README.md) | [Backend/dotnet/README.md](Backend/dotnet/README.md) |
+| **Interactive Tutorial** | Jupyter notebook | Jupyter notebook | Jupyter notebook |
 
 ## Contributing
 

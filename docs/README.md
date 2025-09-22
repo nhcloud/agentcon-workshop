@@ -12,7 +12,8 @@ This directory contains comprehensive documentation for the AI Agents Workshop.
 - **[GROUP_CHAT.md](GROUP_CHAT.md)** - Multi-agent group chat implementation guide
 
 ### Platform-Specific Documentation
-- **[Python Backend](../Backend/python/examples/README.md)** - Python configuration examples and setup
+- **[Python LangChain Backend](../Backend/python/langchain/README.md)** - Python LangChain implementation and setup
+- **[Python SK Backend](../Backend/python/sk/SETUP_README.md)** - Python Semantic Kernel implementation and setup  
 - **[.NET Backend](../Backend/dotnet/sk/README.md)** - .NET Semantic Kernel implementation and setup
 
 ## 🚀 Quick Start
@@ -22,7 +23,8 @@ This directory contains comprehensive documentation for the AI Agents Workshop.
    - For .NET: See [.NET README](../Backend/dotnet/sk/README.md) for .NET setup
 2. **Environment Setup**: Follow [ENVIRONMENT_GUIDE.md](ENVIRONMENT_GUIDE.md) to configure your credentials
 3. **Choose Your Platform**: 
-   - For Python: See [Python Examples](../Backend/python/examples/README.md)
+   - For Python LangChain: See [Python LangChain Setup](../Backend/python/langchain/README.md)
+   - For Python SK: See [Python SK Setup](../Backend/python/sk/SETUP_README.md)
    - For .NET: See [.NET Implementation](../Backend/dotnet/sk/README.md)
 
 ## 📋 Documentation Standards
@@ -40,7 +42,8 @@ This directory contains comprehensive documentation for the AI Agents Workshop.
 ## 🔗 Related Documentation
 
 - **[Main README](../README.md)** - Project overview and quick start
-- **[Backend README](../Backend/README.md)** - Backend architecture overview for both Python and .NET
+- **[Python Backend](../Backend/python/README.md)** - Python implementation guide (LangChain & Semantic Kernel)
+- **[.NET Backend](../Backend/dotnet/README.md)** - .NET implementation guide (Semantic Kernel)
 - **[Frontend Documentation](../frontend/)** - Frontend setup and usage
 
 ## 📝 Contributing to Documentation
