@@ -6,7 +6,6 @@ A comprehensive workshop for## 📚 Documentation
 - **[🐍 Python LangChain](Backend/python/langchain/README.md)** - Complete LangChain guide
 - **[🐍 Python Semantic Kernel](Backend/python/sk/README.md)** - Complete Python SK guide  
 - **[🔷 .NET Semantic Kernel](Backend/dotnet/sk/README.md)** - Complete .NET guide
-- **[⚙️ Environment Guide](docs/ENVIRONMENT_GUIDE.md)** - Azure configuration
 - **[👥 Group Chat Guide](docs/GROUP_CHAT.md)** - Multi-agent patternsng sophisticated AI agent applications using Azure OpenAI services. Choose from **Python** (LangChain & Semantic Kernel) or **.NET** (Semantic Kernel) implementations to learn multi-agent architectures.
 
 ## 🚀 Quick Start
