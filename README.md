@@ -1,12 +1,20 @@
-# Azure Multi-Agent Workshop 
+# Azure Multi-Agent Workshop
 
-A comprehensive workshop for## 📚 Documentation
+Build sophisticated Azure OpenAI agent applications using three aligned backends:
+1. **Python + LangChain**
+2. **Python + Semantic Kernel**
+3. **.NET + Semantic Kernel**
 
-- **[☁️ Azure AI Services Setup](docs/AI_SERVICES_GUIDE.md)** - Complete Azure setup guide
-- **[🐍 Python LangChain](Backend/python/langchain/README.md)** - Complete LangChain guide
-- **[🐍 Python Semantic Kernel](Backend/python/sk/README.md)** - Complete Python SK guide  
-- **[🔷 .NET Semantic Kernel](Backend/dotnet/sk/README.md)** - Complete .NET guide
-- **[👥 Group Chat Guide](docs/GROUP_CHAT.md)** - Multi-agent patternsng sophisticated AI agent applications using Azure OpenAI services. Choose from **Python** (LangChain & Semantic Kernel) or **.NET** (Semantic Kernel) implementations to learn multi-agent architectures.
+Pick your stack, follow the dedicated README, and connect the shared React frontend to try multi-agent routing, group chat, and Azure AI Foundry integrations.
+
+## 📚 Documentation
+
+- **[🚀 Installation Checklist](docs/INSTALL.md)** – Tools you need before running anything
+- **[☁️ Azure AI Services Setup](docs/AI_SERVICES_GUIDE.md)** – Provision Azure OpenAI + Foundry resources
+- **[🐍 Python LangChain](Backend/python/langchain/README.md)** – LangChain backend guide
+- **[🐍 Python Semantic Kernel](Backend/python/sk/README.md)** – Semantic Kernel (Python) guide
+- **[🔷 .NET Semantic Kernel](Backend/dotnet/sk/README.md)** – Semantic Kernel (.NET) guide
+- **[👥 Group Chat Guide](docs/GROUP_CHAT.md)** – Multi-agent collaboration patterns
 
 ## 🚀 Quick Start
 
@@ -70,13 +78,14 @@ This workshop demonstrates modern multi-agent patterns:
 - **📊 Session Management**: Persistent conversation state
 - **🔐 Enterprise Ready**: Azure authentication & security
 
-## 📚 Documentation
+## 📚 Documentation (Quick Links)
 
-- **[🐍 Python LangChain](Backend/python/langchain/README.md)** - Complete LangChain guide
-- **[� Python Semantic Kernel](Backend/python/sk/README.md)** - Complete Python SK guide  
-- **[� .NET Semantic Kernel](Backend/dotnet/sk/README.md)** - Complete .NET guide
-- **[⚙️ Environment Guide](docs/ENVIRONMENT_GUIDE.md)** - Azure configuration
-- **[👥 Group Chat Guide](docs/GROUP_CHAT.md)** - Multi-agent patterns
+- **[🐍 Python LangChain](Backend/python/langchain/README.md)** – Complete LangChain guide
+- **[🐍 Python Semantic Kernel](Backend/python/sk/README.md)** – Complete Python SK guide  
+- **[🔷 .NET Semantic Kernel](Backend/dotnet/sk/README.md)** – Complete .NET guide
+- **[⚙️ Environment Guide](docs/ENVIRONMENT_GUIDE.md)** – Detailed Azure configuration references
+- **[👥 Group Chat Guide](docs/GROUP_CHAT.md)** – Multi-agent orchestration walkthrough
+- **[🚀 Installation Checklist](docs/INSTALL.md)** – Validate your local toolchain
 
 ## 🎯 Learning Path
 

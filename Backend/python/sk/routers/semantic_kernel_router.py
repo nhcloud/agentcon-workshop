@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from semantic_kernel import Kernel
-from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
+from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion, OpenAIChatPromptExecutionSettings
 from semantic_kernel.functions import KernelFunctionFromPrompt
 from semantic_kernel.contents import ChatHistory
 
@@ -81,14 +81,23 @@ Selected Agent:"""
                 AzureChatCompletion(
                     endpoint=azure_endpoint,
                     deployment_name=deployment_name,
-                    api_key=api_key
+                    api_key=api_key,
+                    api_version=api_version
                 )
+            )
+            
+            # Create execution settings for consistent behavior
+            execution_settings = OpenAIChatPromptExecutionSettings(
+                temperature=0.7,
+                max_tokens=500,  # Shorter for routing decisions
+                top_p=0.9
             )
             
             # Create routing function
             self.routing_function = KernelFunctionFromPrompt(
                 function_name="route_message",
-                prompt=self.routing_prompt
+                prompt=self.routing_prompt,
+                execution_settings=execution_settings
             )
             
         except Exception as e:
@@ -214,8 +223,16 @@ Best Agent:"""
                 AzureChatCompletion(
                     endpoint=azure_endpoint,
                     deployment_name=deployment_name,
-                    api_key=api_key
+                    api_key=api_key,
+                    api_version=api_version
                 )
+            )
+            
+            # Create execution settings for consistent behavior
+            execution_settings = OpenAIChatPromptExecutionSettings(
+                temperature=0.7,
+                max_tokens=500,
+                top_p=0.9
             )
             
             # Create routing functions

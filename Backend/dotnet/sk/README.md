@@ -1,304 +1,161 @@
 # .NET Semantic Kernel Agents Workshop
 
-A comprehensive .NET 9 implementation of Semantic Kernel agents that matches the Python workshop structure, demonstrating the progression from basic agents to enterprise-ready Azure AI Foundry solutions.
+Enterprise-grade .NET 9 backend that mirrors the Python Semantic Kernel experience. It loads the same YAML agent catalog, supports Azure AI Foundry agents, and exposes a frontend-friendly API for multi-agent chat.
 
-## 🚀 Quick Setup
+## 🚀 Quick Start
 
 ### Prerequisites
 - .NET 9 SDK
-- Visual Studio 2022 or VS Code
+- VS Code (C# Dev Kit) or Visual Studio 2022 17.10+
 - Azure OpenAI resource
-- (Optional) Azure AI Foundry project
+- (Optional) Azure AI Foundry project with people/knowledge agents
 
-### Configuration
+### Configure Secrets
 
-This workshop uses environment variables loaded from a `.env` file for configuration, with fallback to `appsettings.json`.
-
-#### Setup Configuration
-
-1. Edit the existing `.env` file with your Azure credentials:
-   ```bash
-   # Azure OpenAI Configuration
-   AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com
-   AZURE_OPENAI_API_KEY=your-azure-openai-api-key-here
-   AZURE_OPENAI_DEPLOYMENT_NAME=your-model-deployment-name
-   AZURE_OPENAI_API_VERSION=2024-02-01
-
-   # Azure AI Foundry (Optional)
-   PROJECT_ENDPOINT=https://your-resource-name.services.ai.azure.com/api/projects/your-project-name
-   PEOPLE_AGENT_ID=asst-your-people-agent-id-here
-   KNOWLEDGE_AGENT_ID=asst-your-knowledge-agent-id-here
-
-   # Frontend Configuration
-   FRONTEND_URL=http://localhost:3001
-   ```
-
-#### Alternative: appsettings.json
-
-If you prefer, you can also configure via `appsettings.json` or `appsettings.Development.json`:
-
-```json
-{
-  "AzureAI": {
-    "AzureOpenAI": {
-      "Endpoint": "https://your-resource-name.openai.azure.com",
-      "ApiKey": "your-azure-openai-api-key-here",
-      "DeploymentName": "your-model-deployment-name",
-      "ApiVersion": "2024-02-01"
-    },
-    "AzureAIFoundry": {
-      "ProjectEndpoint": "https://your-resource-name.services.ai.azure.com/api/projects/your-project-name",
-      "PeopleAgentId": "asst-your-people-agent-id-here",
-      "KnowledgeAgentId": "asst-your-knowledge-agent-id-here"
-    }
-  }
-}
+```powershell
+cd Backend/dotnet/sk
+copy ..\..\env.template .env
+# edit .env to add Azure OpenAI + Foundry values
 ```
 
-### Running the Workshop
+The application reads from `.env`, `config.yml`, environment variables, or `appsettings*.json` (in that order). If the YAML is missing the API falls back to baked-in defaults.
 
-1. **Start the API:**
-   ```bash
-   dotnet run
-   ```
+### Run the API
 
-2. **Access the Swagger UI:**
-   Open http://localhost:8002 in your browser
-
-3. **Check Configuration:**
-   Visit http://localhost:8002/api/config to verify your setup
-
-4. **Health Check:**
-   Visit http://localhost:8002/health for service status
-
-## 🏗️ Workshop Structure
-
-This .NET implementation mirrors the Python workshop progression:
-
-### 1. Basic Agents
-- Simple chat completion agents
-- Basic Semantic Kernel setup
-- Azure OpenAI integration
-
-### 2. Enhanced Agents
-- Multi-provider support
-- Context management
-- Advanced error handling
-
-### 3. Advanced Features
-- Plugin system
-- Memory management
-- Custom functions
-
-### 4. Enterprise Ready
-- Azure AI Foundry integration
-- Monitoring and telemetry
-- Production configurations
-
-## 📚 Key Components
-
-### Services
-- **AgentService**: Core agent management
-- **GroupChatService**: Multi-agent conversations
-- **SessionManager**: Session and state management
-
-### Configuration
-- **AzureAIConfig**: Centralized Azure configuration
-- Environment variable support via .env file
-- Development/Production configurations via appsettings.json
-
-### Controllers
-- **AgentsController**: Individual agent endpoints
-- **GroupChatController**: Multi-agent chat endpoints
-- **ChatController**: Basic chat functionality
-
-## 🔧 API Endpoints
-
-### Core Endpoints
-- `GET /health` - Service health and configuration status
-- `GET /api/config` - Configuration verification
-- `GET /swagger` - Interactive API documentation
-
-### Agent Endpoints
-- `POST /api/agents/{agentType}/chat` - Chat with specific agent types
-- `GET /api/agents/types` - Available agent types
-- `POST /api/agents/group-chat` - Multi-agent conversations
-
-## 🧪 Testing the Workshop
-
-### 1. Verify Configuration
-```bash
-curl http://localhost:8002/health
+```powershell
+dotnet restore
+dotnet run
 ```
 
-### 2. Test Basic Chat
-```bash
-curl -X POST http://localhost:8002/api/agents/generic/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Hello, what can you help me with?"}'
+Default URLs:
+- Swagger UI → `http://localhost:8000`
+- Health check → `GET http://localhost:8000/health`
+- Agents list → `GET http://localhost:8000/agents`
+
+> Set `PORT=8000` or any other value in `.env` to change the listening port. HTTPS is disabled by default for local dev to avoid certificate friction.
+
+## ⚙️ Configuration Model
+
+### `.env`
+
+```env
+AZURE_OPENAI_ENDPOINT=https://<resource>.openai.azure.com
+AZURE_OPENAI_API_KEY=<key>
+AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
+AZURE_OPENAI_API_VERSION=2024-10-21
+
+PROJECT_ENDPOINT=https://<resource>.services.ai.azure.com/api/projects/<project>
+PEOPLE_AGENT_ID=asst-people-agent
+KNOWLEDGE_AGENT_ID=asst-knowledge-agent
+MANAGED_IDENTITY_CLIENT_ID=<client-id-if-using-UMI>
+
+FRONTEND_URL=http://localhost:3001
+LOG_LEVEL=Information
 ```
 
-### 3. Test Group Chat
-```bash
-curl -X POST http://localhost:8002/api/agents/group-chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "Discuss the benefits of AI agents",
-    "agentTypes": ["creative", "technical"]
-  }'
-```
+### `config.yml`
 
-## 🌟 Workshop Features
+`config.yml` mirrors the Python backend and ships with:
+- App metadata + logging defaults
+- Azure OpenAI + Azure AI Foundry connection info
+- Agent definitions (instructions/metadata/provider)
+- Regex + SK routing configuration
+- Group chat templates reused by the frontend + notebook
 
-### Semantic Kernel Integration
-- Modern .NET 9 implementation
-- ChatCompletion agents
-- Plugin architecture
-- Memory management
+`Program.cs` uses `Env.Load()` + `NetEscapades.Configuration.Yaml` to merge YAML with environment variables at runtime. New sections can be bound via `Configuration.Bind<T>()` using the `Configuration/AgentConfig.cs` types.
 
-### Azure AI Services
-- Azure OpenAI integration
-- Azure AI Foundry support
-- Managed identity ready
-- Enterprise security
+## 🧩 Architecture Overview
 
-### Development Experience
-- Hot reload support
-- Comprehensive logging
-- Swagger documentation
-- Configuration validation
-
-## 🔄 Comparison with Python Version
-
-| Feature | Python Workshop | .NET Workshop |
-|---------|----------------|---------------|
-| Framework | Semantic Kernel Python | Semantic Kernel .NET |
-| Configuration | .env files | .env + appsettings.json |
-| Agent Types | Custom classes | Service-based architecture |
-| API Framework | FastAPI/Flask | ASP.NET Core Web API |
-| Documentation | Jupyter notebooks | Swagger/OpenAPI |
-| Development | Interactive notebooks | Visual Studio/VS Code |
-
-## 🎯 Learning Objectives
-
-By completing this workshop, you'll understand:
-
-1. **Semantic Kernel Fundamentals**
-   - Plugin architecture
-   - Memory management
-   - Function calling
-
-2. **Azure AI Integration**
-   - OpenAI service setup
-   - AI Foundry enterprise features
-   - Configuration management
-
-3. **Enterprise Patterns**
-   - Service architecture
-   - Dependency injection
-   - Configuration management
-   - API design
-
-4. **.NET 9 Modern Features**
-   - Minimal APIs
-   - Configuration providers
-   - Logging and telemetry
-   - CORS and security
-
-## 🚀 Next Steps
-
-After completing this workshop:
-
-1. **Extend Agent Capabilities**: Add custom plugins and functions
-2. **Implement Memory**: Add vector databases and semantic memory
-3. **Enterprise Deployment**: Configure for production with Azure services
-4. **Frontend Integration**: Connect with React/Blazor applications
-5. **Monitoring**: Add Application Insights and health checks
-
-## 🤝 Workshop Alignment
-
-This .NET implementation provides the same learning experience as the Python version while showcasing .NET-specific patterns and enterprise features. Both workshops teach the same core concepts using their respective platform strengths.
-
-## 📁 Project Structure
+- **Program.cs** wires YAML, Swagger, long-running request limits, and CORS
+- **Configuration/AgentConfig.cs** holds strongly-typed YAML config sections
+- **Services/AgentInstructionsService.cs** overrides default prompts based on YAML entries
+- **Services/AgentService.cs** caches Azure AI Foundry agents and falls back to Azure OpenAI
+- **Controllers** expose `/agents`, `/chat`, `/group-chat`, `/reset`, `/health`
 
 ```
 sk/
-├── Controllers/                 # ASP.NET Core API controllers
-│   ├── AgentsController.cs     # Agent management endpoints
-│   ├── ChatController.cs       # Single agent chat endpoints
-│   └── GroupChatController.cs  # Multi-agent chat endpoints
-├── Services/                   # Business logic services
-│   ├── AgentService.cs         # Agent factory and management
-│   ├── GroupChatService.cs     # Group chat orchestration
-│   └── SessionManager.cs      # Session and history management
-├── Agents/                     # Agent implementations
-│   ├── BaseAgent.cs           # Abstract base agent class
-│   └── SpecificAgents.cs      # Concrete agent implementations
-├── Models/                     # Data transfer objects
-│   └── ChatModels.cs          # Request/response models
-├── Configuration/              # Configuration classes
-│   └── AzureAIConfig.cs       # Azure AI settings
-├── Program.cs                  # Application entry point
-├── appsettings.json           # Configuration settings
-├── .env                       # Environment variables (actual config)
-└── README.md                  # This file
+├── Agents/
+│   ├── BaseAgent.cs
+│   └── SpecificAgents.cs
+├── Configuration/
+│   ├── AgentConfig.cs
+│   └── AzureAIConfig.cs
+├── Controllers/
+│   ├── AgentsController.cs
+│   ├── ChatController.cs
+│   └── GroupChatController.cs
+├── Services/
+│   ├── AgentInstructionsService.cs
+│   ├── AgentService.cs
+│   ├── GroupChatService.cs
+│   └── SessionManager.cs
+├── Models/
+│   └── ChatModels.cs
+├── config.yml
+├── Program.cs
+└── DotNetSemanticKernel.csproj
 ```
 
-## 🔧 Development
+## 🔌 Azure Integration
 
-### Adding New Agents
+- `Microsoft.SemanticKernel.Agents.AzureAI` + `Azure.AI.Projects` for Foundry agents
+- `DefaultAzureCredential` with optional managed identity client ID
+- Extended HTTP/Kestrel timeouts to handle long-running Foundry conversations
+- `/health` endpoint surfaces whether Azure OpenAI / Foundry settings are present
 
-1. Create a new agent class inheriting from `BaseAgent`:
+## 📡 API Summary
 
-```csharp
-public class MyCustomAgent : BaseAgent
-{
-    public override string Name => "my_custom_agent";
-    public override string Description => "Description of what this agent does";
-    public override string Instructions => "System prompt for the agent";
+| Endpoint | Description |
+|----------|-------------|
+| `GET /health` | Overall status + configured providers |
+| `GET /agents` | List available agents (Foundry + fallback) |
+| `POST /chat` | Single-agent chat with conversation history replay |
+| `POST /group-chat` | Multi-agent orchestration (supports Foundry agents) |
+| `POST /reset` | Frontend-aligned session reset |
 
-    public MyCustomAgent(Kernel kernel, ILogger<MyCustomAgent> logger) 
-        : base(kernel, logger) { }
-}
+All routes are root-relative (`/chat`, `/agents`, etc.) to keep the React frontend wiring simple. Swagger (`/swagger`) is enabled in Development mode.
+
+## 🧪 Quick Smoke Tests
+
+```powershell
+# Health check
+curl http://localhost:8000/health
+
+# Chat with the generic agent
+curl -X POST http://localhost:8000/chat \
+     -H "Content-Type: application/json" \
+     -d '{"message": "Summarise the workshop focus areas."}'
+
+# Group chat using hybrid routing
+curl -X POST http://localhost:8000/group-chat \
+     -H "Content-Type: application/json" \
+     -d '{"message": "Who should help onboard new engineers?", "agents": ["generic_agent","people_lookup"]}'
 ```
 
-2. Register the agent in `AgentService`:
+## 🛠️ Extending Agents
 
-```csharp
-_agentFactories["my_custom_agent"] = () => new MyCustomAgent(_kernel, 
-    _serviceProvider.GetRequiredService<ILogger<MyCustomAgent>>());
-```
+1. Add instructions + metadata to `config.yml` under `agents:`.
+2. Implement a new class inheriting `BaseAgent` (or reuse `GenericAgent`, `PeopleLookupAgent`, etc.).
+3. Register the agent in `AgentService` by adding to `_agentFactories`.
+4. Update routing patterns if the agent should participate in auto-selection.
 
-## 🔒 Security & Best Practices
+Because `AgentInstructionsService` binds YAML at startup you can adjust prompts without recompiling.
 
-- **API Keys**: Use environment variables, never hardcode
-- **CORS**: Configured for frontend origins
-- **Input Validation**: ASP.NET Core model binding
-- **Error Handling**: Comprehensive exception handling
-- **Logging**: Structured logging with semantic information
+## 🔒 Best Practices & Troubleshooting
 
-## 🐛 Troubleshooting
+- **Environment**: `.env` overrides everything; restart after edits so `DotNetEnv` reloads values.
+- **YAML typos**: invalid YAML will be logged at startup and the system will fall back to default instructions.
+- **Foundry agent errors**: ensure IDs don’t contain unresolved `${...}` placeholders and `PROJECT_ENDPOINT` is HTTPS.
+- **Long responses**: timeouts bumped to ≥2 minutes for chat and 5 minutes for group chat; adjust in `Program.cs` if needed.
+- **CORS**: `AllowFrontend` policy allows all origins in Development, otherwise uses `FRONTEND_URL`.
 
-### Common Issues
+## 📚 Related Material
 
-1. **Configuration not loading**: Ensure .env file has proper values
-2. **API key errors**: Verify Azure OpenAI credentials in .env file
-3. **Port conflicts**: Set PORT environment variable in .env
-4. **Model access errors**: Check Azure resource permissions
+- [Root project README](../../../README.md)
+- [Python Semantic Kernel backend](../sk/README.md) for parity details
+- [Azure AI Services Guide](../../../docs/AI_SERVICES_GUIDE.md)
+- [Installation checklist](../../../docs/INSTALL.md)
 
-### Debug Configuration
+---
 
-Check your configuration status:
-```bash
-curl http://localhost:8002/api/config
-```
-
-Enable detailed logging:
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Microsoft.SemanticKernel": "Debug"
-    }
-  }
-}
+With the shared YAML + env template, you can swap between Python and .NET implementations without reconfiguring Azure resources. Hack on whichever stack you prefer while keeping behaviour consistent.

@@ -562,16 +562,27 @@ async def group_chat_endpoint(request: GroupChatRequest):
                         max_consecutive_turns=participant.get("max_consecutive_turns", 3)
                     )
             else:
-                # Add default participants from registered agents
-                available_agents = agent_registry.get_available_agents()
-                for agent_name in available_agents[:3]:  # Limit to 3 for demo
-                    agent = agent_registry.get_agent(agent_name)
-                    await group_chat.add_participant(
-                        name=agent_name,
-                        instructions=f"You are {agent_name}. Provide helpful responses based on your expertise.",
-                        role=GroupChatRole.PARTICIPANT,
-                        priority=1
-                    )
+                # Add default participants using LOCAL agents only (to avoid Azure Foundry hallucination)
+                await group_chat.add_participant(
+                    name="generic_agent",
+                    instructions="You are a helpful, knowledgeable, and versatile assistant. Provide accurate and helpful responses.",
+                    role=GroupChatRole.PARTICIPANT,
+                    priority=3
+                )
+                
+                await group_chat.add_participant(
+                    name="people_lookup",
+                    instructions="You are a People Lookup Assistant. Focus on finding information about people, contacts, and team members. Provide factual, helpful responses about people-related queries.",
+                    role=GroupChatRole.PARTICIPANT,
+                    priority=2
+                )
+                
+                await group_chat.add_participant(
+                    name="knowledge_finder",
+                    instructions="You are a Knowledge Finder Assistant. Focus on searching documentation, policies, and knowledge bases. Provide accurate, well-researched responses about information and knowledge queries.",
+                    role=GroupChatRole.PARTICIPANT,
+                    priority=2
+                )
             
             GROUP_CHATS[session_id] = group_chat
         

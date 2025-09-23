@@ -1,12 +1,12 @@
-# Modern Semantic Kernel Agent System Configuration
+# .NET Semantic Kernel Agent System Configuration
 
 # Application settings
 app:
-  title: "Semantic Kernel AI Agent System"
+  title: ".NET Semantic Kernel AI Agent System"
   version: "2.0.0"
   frontend_url: "${FRONTEND_URL:*}"
-  log_level: "${LOG_LEVEL:INFO}"
-  environment: "${ENVIRONMENT:production}"
+  log_level: "${LOG_LEVEL:Information}"
+  environment: "${ENVIRONMENT:Production}"
 
 # Azure OpenAI configuration (for Semantic Kernel)
 azure_openai:
@@ -37,9 +37,9 @@ cache:
 
 # Logging and monitoring
 logging:
-  level: "${LOG_LEVEL:INFO}"
+  level: "${LOG_LEVEL:Information}"
   format: "structured"
-  enable_debug: "${DEBUG_LOGS:0}"
+  enable_debug: "${DEBUG_LOGS:false}"
 
 # Agent configurations
 agents:
@@ -77,8 +77,8 @@ agents:
       - Appropriate level of detail for the context
       - Encouraging and supportive
     metadata:
-      description: "General purpose Semantic Kernel agent"
-      capabilities: ["general_conversation", "analysis", "task_assistance", "semantic_reasoning"]
+      description: "General-purpose conversational agent powered by Azure OpenAI for various tasks and inquiries"
+      capabilities: ["general_conversation", "problem_solving", "task_assistance", "guidance", "research_support"]
     framework_config:
       provider: "azure_openai"
 
@@ -119,8 +119,8 @@ agents:
       - "I don't have a record for <person>. Could you share their department or location so I can narrow the search?"
       - "Our directory doesn't list contractor phone numbers. Please reach out to HR for further assistance."
     metadata:
-      description: "Finds information about people using Azure AI Foundry"
-      capabilities: ["employee_search", "contact_lookup", "org_chart", "team_info"]
+      description: "Azure AI Foundry agent expert at finding information about people, contacts, and team members"
+      capabilities: ["employee_search", "contact_lookup", "org_chart", "team_info", "directory_searches"]
     framework_config:
       provider: "azure_foundry"
       agent_id: "${PEOPLE_AGENT_ID}"
@@ -160,8 +160,8 @@ agents:
       - Reference credible sources and suggest further reading
       - Always try to provide value even if exact information isn't available
     metadata:
-      description: "Searches documentation using Azure AI Foundry"
-      capabilities: ["document_search", "policy_lookup", "technical_support", "procedure_guidance"]
+      description: "Azure AI Foundry agent specialist at searching and retrieving relevant knowledge, documents, and information"
+      capabilities: ["document_search", "research_assistance", "information_organization", "context_provision", "relevance_filtering"]
     framework_config:
       provider: "azure_foundry"
       agent_id: "${KNOWLEDGE_AGENT_ID}"
@@ -185,7 +185,7 @@ router:
       - "\\b(how to|procedure|process|guide|documentation|docs)\\b"
       - "\\b(policy|guideline|standard|requirement|compliance)\\b"
       - "\\b(setup|configuration|install|deploy|implementation)\\b"
-      - "\\b(akumina|platform|technical|api|integration)\\b"
+      - "\\b(technical|api|integration)\\b"
       - "\\b(manual|tutorial|instruction|walkthrough)\\b"
 
   # Semantic Kernel routing configuration
@@ -210,7 +210,7 @@ providers:
     enabled: true
     priority: 2
 
-# Security (future enhancement)
+# Security
 security:
   enable_auth: false
   api_key_header: "X-API-Key"

@@ -12,7 +12,7 @@ import logging
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from semantic_kernel import Kernel
-from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
+from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion, OpenAIChatPromptExecutionSettings
 from semantic_kernel.agents import ChatCompletionAgent, AgentGroupChat, ChatHistoryAgentThread
 from semantic_kernel.contents import ChatHistory, ChatMessageContent, AuthorRole
 
@@ -98,7 +98,8 @@ class SemanticKernelAgentGroupChat:
                     AzureChatCompletion(
                         endpoint=azure_endpoint,
                         deployment_name=deployment_name,
-                        api_key=api_key
+                        api_key=api_key,
+                        api_version=api_version
                     )
                 )
             
@@ -121,12 +122,23 @@ class SemanticKernelAgentGroupChat:
             await self.initialize()
         
         try:
+            # Create execution settings for consistent behavior
+            execution_settings = OpenAIChatPromptExecutionSettings(
+                service_id=None,  # Use the default service
+                temperature=0.7,
+                max_tokens=800,
+                top_p=0.9
+            )
+            
             # Create Semantic Kernel chat agent
             agent = ChatCompletionAgent(
                 kernel=self.kernel,
                 name=name,
                 instructions=instructions
             )
+            
+            # Store execution settings for this agent
+            agent._execution_settings = execution_settings
             
             # Create participant wrapper
             participant = GroupChatParticipant(
@@ -291,10 +303,15 @@ class SemanticKernelAgentGroupChat:
                     # Create a thread with the current chat history
                     thread = ChatHistoryAgentThread(chat_history=self.chat_history)
                     
-                    # Get agent response using the correct invoke method
+                    # Create kernel arguments with execution settings
+                    from semantic_kernel.functions import KernelArguments
+                    kernel_args = KernelArguments(settings=participant.agent._execution_settings)
+                    
+                    # Get agent response using the correct invoke method with execution settings
                     response_item = await participant.agent.get_response(
                         messages=current_message,
-                        thread=thread
+                        thread=thread,
+                        arguments=kernel_args
                     )
                     
                     # Update chat history from the response thread
@@ -406,10 +423,15 @@ class SemanticKernelAgentGroupChat:
                 # Create a thread with the current chat history for this agent
                 thread = ChatHistoryAgentThread(chat_history=self.chat_history)
                 
-                # Get agent response
+                # Create kernel arguments with execution settings
+                from semantic_kernel.functions import KernelArguments
+                kernel_args = KernelArguments(settings=participant.agent._execution_settings)
+                
+                # Get agent response with execution settings
                 response_item = await participant.agent.get_response(
                     messages=message,
-                    thread=thread
+                    thread=thread,
+                    arguments=kernel_args
                 )
                 
                 # Extract response content
