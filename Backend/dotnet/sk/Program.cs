@@ -4,11 +4,15 @@ using Microsoft.SemanticKernel;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using DotNetEnv;
+using NetEscapades.Configuration.Yaml;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Load environment variables from .env file
 Env.Load();
+
+// Add YAML configuration support
+builder.Configuration.AddYamlFile("config.yml", optional: true, reloadOnChange: true);
 
 // Configure request timeout - increase from default 20 seconds to 2 minutes
 builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
@@ -116,6 +120,12 @@ builder.Services.Configure<AzureAIConfig>(options =>
         }
     }
 });
+
+// Add agent configuration from YAML
+builder.Services.Configure<AppConfig>(builder.Configuration);
+
+// Register agent instructions service
+builder.Services.AddSingleton<AgentInstructionsService>();
 
 // Add Semantic Kernel services
 builder.Services.AddScoped<IKernelBuilder>(provider =>

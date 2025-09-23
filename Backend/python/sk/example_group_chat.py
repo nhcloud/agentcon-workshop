@@ -200,8 +200,9 @@ async def main():
         print(f"Error: {e}")
         print("\nMake sure you have set the required environment variables:")
         print("- AZURE_OPENAI_ENDPOINT")
-        print("- AZURE_OPENAI_DEPLOYMENT") 
-        print("- AZURE_OPENAI_KEY")
+        print("- AZURE_OPENAI_DEPLOYMENT_NAME")
+        print("- AZURE_OPENAI_API_KEY")
+        print("- AZURE_OPENAI_API_VERSION (optional, defaults to 2024-02-01)")
 
 
 if __name__ == "__main__":

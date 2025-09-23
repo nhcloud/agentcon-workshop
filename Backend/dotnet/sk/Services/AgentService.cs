@@ -51,7 +51,8 @@ public class AgentService : IAgentService
     private async Task<IAgent> CreateStandardAgentAsync<T>() where T : BaseAgent
     {
         var logger = _serviceProvider.GetRequiredService<ILogger<T>>();
-        var agent = (T)Activator.CreateInstance(typeof(T), _kernel, logger)!;
+        var instructionsService = _serviceProvider.GetRequiredService<AgentInstructionsService>();
+        var agent = (T)Activator.CreateInstance(typeof(T), _kernel, logger, instructionsService)!;
         await agent.InitializeAsync();
         return agent;
     }

@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from semantic_kernel import Kernel
-from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
+from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion, OpenAIChatPromptExecutionSettings
 from semantic_kernel.agents import ChatCompletionAgent, AzureAIAgent, ChatHistoryAgentThread, AzureAIAgentThread
 from semantic_kernel.contents import ChatHistory, ChatMessageContent, AuthorRole
 
@@ -29,6 +29,7 @@ class SemanticKernelGenericAgent(BaseAgent):
         self.kernel: Optional[Kernel] = None
         self.chat_agent: Optional[ChatCompletionAgent] = None
         self.chat_history: Optional[ChatHistory] = None
+        self.execution_settings: Optional[OpenAIChatPromptExecutionSettings] = None
     
     async def initialize(self) -> None:
         """Initialize the Semantic Kernel agent."""
@@ -48,8 +49,17 @@ class SemanticKernelGenericAgent(BaseAgent):
                 AzureChatCompletion(
                     endpoint=endpoint,
                     deployment_name=deployment,
-                    api_key=api_key
+                    api_key=api_key,
+                    api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
                 )
+            )
+            
+            # Create execution settings to control model behavior
+            self.execution_settings = OpenAIChatPromptExecutionSettings(
+                service_id=None,  # Use the default service
+                temperature=0.7,
+                max_tokens=800,
+                top_p=0.9
             )
             
             # Create chat completion agent
@@ -101,8 +111,16 @@ class SemanticKernelGenericAgent(BaseAgent):
             # Create a thread with the working history
             thread = ChatHistoryAgentThread(chat_history=working_history)
             
-            # Get response from agent using the correct method
-            response = await self.chat_agent.get_response(messages=message, thread=thread)
+            # Create kernel arguments with execution settings
+            from semantic_kernel.functions import KernelArguments
+            kernel_args = KernelArguments(settings=self.execution_settings)
+            
+            # Get response from agent using the correct method with kernel arguments
+            response = await self.chat_agent.get_response(
+                messages=message, 
+                thread=thread,
+                arguments=kernel_args
+            )
             
             # Extract content from the response
             if response and hasattr(response, 'content'):

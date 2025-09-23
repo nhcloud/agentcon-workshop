@@ -1,250 +1,142 @@
-# Semantic Kernel Implementation - Python Backend
+# Semantic Kernel Python Backend
 
-A comprehensive Semantic Kernel-based implementation of the multi-agent system, providing Microsoft's enterprise-grade AI orchestration framework with Azure integration.
+Modern Semantic Kernel (SK) implementation that mirrors the LangChain and .NET workshops. This backend adds a YAML-driven agent catalog, Azure AI Foundry support, and enterprise-ready routing that matches the latest workshop curriculum.
 
 ## 🚀 Quick Start
 
-### Option 1: Workshop Notebook (Easiest for Learning)
+### Option 1 — Interactive Workshop
 
-1. **Open the workshop notebook:**
-   ```bash
-   # Open workshop_semantic_kernel_agents.ipynb in Jupyter or VS Code
-   ```
+1. Open `workshop_semantic_kernel_agents.ipynb` in VS Code or Jupyter.
+2. Follow the first section to create/activate a virtual environment and install packages.
+3. Run the cells to explore generic agents, Azure AI Foundry agents, and the group-chat orchestrator.
 
-2. **Run the first cell** (Section 0: Environment Setup)
-   - Automatically installs all required packages
-   - Checks for environment variables
-   - Includes mock implementations if no Azure credentials
+> The notebook uses the same configuration helpers as the API. When Azure credentials are missing it falls back to informative stubs so you can complete the learning path offline.
 
-3. **Continue with the workshop** - Learn concepts hands-on!
+### Option 2 — Run the FastAPI Service
 
-### Option 2: Production API Setup
-
-### Prerequisites
-- Python 3.8+
-- Azure OpenAI Service access
-- (Optional) Azure AI Foundry project
-
-### Installation
-
-1. **Navigate to Semantic Kernel directory:**
-   ```bash
-   cd Backend/python/sk
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Configure environment:**
-   ```bash
-   # Copy template
-   cp ../env.template .env
-   
-   # Edit .env with your Azure credentials
-   ```
-
-4. **Run the application:**
-   ```bash
-   uvicorn main:app --reload
-   ```
-
-The API will be available at:
-- **API**: `http://localhost:8001`
-- **API Docs**: `http://localhost:8001/docs`
-
-## 🎓 Workshop Learning Path
-
-### No Azure Credentials? No Problem!
-The workshop includes **mock implementations** so you can:
-- ✅ Learn all the concepts and patterns
-- ✅ Understand Semantic Kernel architecture
-- ✅ See enterprise features in action
-- ✅ Progress from basic to advanced agents
-
-### What You'll Learn
-1. **Basic Semantic Kernel Agents** - Core concepts and patterns
-2. **Azure Integration** - Multi-provider support and Azure services
-3. **Advanced Features** - Plugins, memory, and context management
-4. **Enterprise Deployment** - Azure AI Foundry for production
-
-## 📚 Features
-
-### Semantic Kernel Framework
-- **Native Azure Integration**: Built specifically for Microsoft Azure ecosystem
-- **Plugin Architecture**: Structured and type-safe plugin system
-- **Planning Capabilities**: Built-in planning and orchestration
-- **Enterprise Ready**: Microsoft-backed with enterprise support
-
-### Agent Capabilities
-- **ChatCompletion Agents**: Native SK agent implementations
-- **Group Chat**: Multi-agent collaborative conversations
-- **Template System**: YAML-based agent configurations
-- **Session Management**: Persistent conversation state
-
-### Azure Integration
-- **Azure OpenAI**: Optimized integration with Azure OpenAI Service
-- **Azure AI Foundry**: Enterprise agent deployment and management
-- **Managed Identity**: Production-ready authentication
-- **Security**: Enterprise security and compliance features
-
-## 🏗️ Architecture
-
-### Core Components
-- **Agents**: Semantic Kernel ChatCompletion agents
-- **Routers**: SK-based request routing and orchestration
-- **Sessions**: State management with SK memory
-- **Configuration**: YAML-based agent templates
-
-### File Structure
-```
-sk/
-├── agents/                    # Agent implementations
-│   └── sk_agents.py
-├── routers/                   # Request routing
-│   └── sk_router.py
-├── main.py                    # FastAPI application
-├── config.yml                 # Agent configurations
-├── requirements.txt           # Python dependencies
-├── SETUP_README.md            # Setup instructions
-├── example_group_chat.py      # Group chat example
-└── workshop_semantic_kernel_agents.ipynb # Interactive tutorial
+```powershell
+cd Backend/python/sk
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
+copy ..\env.template .env  # Windows; use `cp` on macOS/Linux
+uvicorn main:app --reload --port 8000
 ```
 
-## 🎓 Learning Materials
-
-### Interactive Workshop
-Start with the interactive notebook:
-```bash
-jupyter notebook workshop_semantic_kernel_agents.ipynb
-```
-
-### Example Scripts
-Run the example scripts:
-```bash
-# Group chat example
-python example_group_chat.py
-
-# Template usage
-python example_template_usage.py
-```
+Endpoints:
+- API root & docs → `http://localhost:8000/docs`
+- Health check → `GET http://localhost:8000/health`
+- Chat endpoint → `POST http://localhost:8000/chat`
 
 ## ⚙️ Configuration
 
-### Environment Variables
+### Environment Variables (`.env`)
+
+The backend reads Azure secrets from `.env` (or the shell environment). Key entries:
+
 ```env
-# Azure OpenAI (Primary)
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_API_KEY=your_api_key
-AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini
+# Azure OpenAI
+AZURE_OPENAI_ENDPOINT=https://<resource>.openai.azure.com
+AZURE_OPENAI_API_KEY=<key>
+AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
+AZURE_OPENAI_API_VERSION=2024-10-21
 
-# Azure AI Foundry (Optional)
-PROJECT_ENDPOINT=https://your-resource.services.ai.azure.com/api/projects/your-project
-PEOPLE_AGENT_ID=asst-your-people-agent-id
-KNOWLEDGE_AGENT_ID=asst-your-knowledge-agent-id
+# Azure AI Foundry (optional but required for enterprise agents)
+PROJECT_ENDPOINT=https://<resource>.services.ai.azure.com/api/projects/<project>
+PEOPLE_AGENT_ID=asst-people-agent
+KNOWLEDGE_AGENT_ID=asst-knowledge-agent
+MANAGED_IDENTITY_CLIENT_ID=<client-id-if-using-UMI>
 
-# Application
-PORT=8001
+# App settings
+FRONTEND_URL=http://localhost:3001
 LOG_LEVEL=INFO
+PORT=8000
 ```
 
-### Agent Templates
-Agents are configured in `config.yml`:
-```yaml
-agents:
-  technical_expert:
-    name: "Technical Expert"
-    description: "Specialized in technical architecture and implementation"
-    instructions: "You are a technical expert with deep knowledge..."
-    
-group_chats:
-  templates:
-    architecture_review:
-      name: "Architecture Review Team"
-      participants: [...]
+> Copy `Backend/env.template` to `.env` for an up-to-date scaffold that includes Azure AI Foundry and managed identity hints.
+
+### YAML Agent Catalog (`config.yml`)
+
+`config.yml` mirrors the .NET version and centralises:
+- Agent definitions with instructions, metadata, and framework provider (`azure_openai` or `azure_foundry`).
+- Regex + semantic routing rules for the hybrid router.
+- Group chat templates that power the notebook demos and API endpoints.
+
+At startup `main.py` loads the YAML via `shared.ConfigFactory`; any missing file falls back to the default presets in code, so you can start from a clean repo.
+
+## 🧠 Architecture Highlights
+
+- **Agents** live in `agents/semantic_kernel_agents.py` with both Azure OpenAI and Azure AI Foundry implementations.
+- **Routing** is handled by `routers/semantic_kernel_router.py`, combining pattern heuristics with SK’s history-aware router.
+- **Sessions & cache** come from the shared toolkit (`Backend/python/shared`), giving parity with the LangChain backend.
+- **Group chat** lives in `agents/agent_group_chat.py` and reads the same template schema as the config file.
+
+```
+sk/
+├── agents/
+│   ├── agent_group_chat.py
+│   └── semantic_kernel_agents.py
+├── routers/
+│   └── semantic_kernel_router.py
+├── sessions/
+│   └── ... (shared session utilities)
+├── config.yml
+├── main.py
+├── requirements.txt
+├── example_group_chat.py
+├── example_template_usage.py
+└── workshop_semantic_kernel_agents.ipynb
 ```
 
-## 🚀 API Endpoints
+## 🔌 Azure Integration
 
-### Chat Endpoints
-- `POST /chat` - Send message to agent
-- `GET /chat/history/{session_id}` - Get chat history
-- `DELETE /chat/history/{session_id}` - Clear history
+- **Azure OpenAI** via Semantic Kernel with `AzureChatCompletion` services and prompt execution settings.
+- **Azure AI Foundry** agents using `azure-ai-projects` and `DefaultAzureCredential`, including managed identity support and HTTPS validation.
+- Built-in health check surfaces which services are configured (`/health`).
 
-### Group Chat
-- `POST /group-chat` - Group conversation
-- `POST /group-chat/from-template` - Create from template
-- `GET /group-chat/templates` - List templates
+## 📡 API Surface
 
-### Agent Management
-- `GET /agents` - List available agents
-- `GET /agents/{agent_name}/info` - Agent details
+| Endpoint | Description |
+|----------|-------------|
+| `GET /health` | Readiness + provider configuration flags |
+| `GET /agents` | Returns enabled agents with provider + capabilities |
+| `POST /chat` | Chat with a single agent or route automatically |
+| `POST /chat/stream` | Server-sent events streaming variant |
+| `POST /group-chat` | Run a multi-agent roundtable using current templates |
+| `GET /messages/{session_id}` | Retrieve session transcript |
+| `DELETE /messages/{session_id}` | Clear a session |
+| `POST /reset` | Thin wrapper for the frontend reset workflow |
 
-## 🔧 Advanced Features
+The frontend passes `agents: []` for auto-routing or a specific agent name to pin the conversation. Group chat requests reuse the same YAML participants as the examples.
 
-### Semantic Kernel Capabilities
-- **Kernel**: Central orchestration component
-- **Plugins**: Structured function calling and tools
-- **Memory**: Advanced memory management and retrieval
-- **Planning**: Automatic task planning and execution
+## 🧪 Examples & Notebook
 
-### Custom Agents
-Create custom agents by extending the SK base classes:
-```python
-from semantic_kernel.agents import ChatCompletionAgent
+- `example_group_chat.py` spins up a mini roundtable and prints each turn.
+- `example_template_usage.py` loads YAML templates and inspects participants.
+- `workshop_semantic_kernel_agents.ipynb` installs requirements, validates environment variables, walks through agent creation, Azure Foundry usage, and group-chat orchestration.
 
-class CustomAgent(ChatCompletionAgent):
-    def __init__(self, kernel, config):
-        super().__init__(
-            service_id="custom-agent",
-            kernel=kernel,
-            name=config.name,
-            instructions=config.instructions
-        )
+Run the validation helper anytime:
+
+```powershell
+python validate_structure.py
 ```
 
-### Production Deployment
-- **Azure Integration**: Native Azure service integration
-- **Monitoring**: Built-in telemetry and logging
-- **Security**: Azure AD authentication and RBAC
-- **Scaling**: Optimized for Azure infrastructure
+## 🧰 Troubleshooting
 
-## 📖 Related Documentation
+| Issue | Fix |
+|-------|-----|
+| `AgentInitializationException` for Foundry agents | Ensure `PROJECT_ENDPOINT` uses `https://` and agent IDs don’t contain unresolved `${...}` placeholders. |
+| `ManagedIdentityCredential authentication unavailable` | Set `MANAGED_IDENTITY_CLIENT_ID` or authenticate via `az login` before running locally. |
+| `ModuleNotFoundError` in notebook | Re-run the install cell; it now aligns with `requirements.txt`. |
+| Redis session errors | Install Redis locally and set `SESSION_STORAGE_TYPE=redis`. |
 
-- **[Main README](../../../README.md)** - Project overview
-- **[Python Backend Guide](../README.md)** - Python implementation guide
-- **[Environment Guide](../../../docs/ENVIRONMENT_GUIDE.md)** - Configuration details
-- **[Group Chat Guide](../../../docs/GROUP_CHAT.md)** - Multi-agent conversations
+## 📚 Related Guides
 
-## 🐛 Troubleshooting
+- [Project README](../../../README.md)
+- [Azure AI Services setup](../../../docs/AI_SERVICES_GUIDE.md)
+- [Installation checklist](../../../docs/INSTALL.md)
+- [Group chat deep dive](../../../docs/GROUP_CHAT.md)
 
-### Common Issues
-1. **Import Errors**: Ensure semantic-kernel package is installed
-2. **Azure Credentials**: Verify environment variables are set
-3. **Port Conflicts**: Change PORT in .env if 8001 is in use
+---
 
-### Getting Help
-- Check the [setup guide](SETUP_README.md) for detailed instructions
-- Review the [environment guide](../../../docs/ENVIRONMENT_GUIDE.md) for configuration
-- Run the validation script: `python validate_env.py`
-
-## 🎯 Next Steps
-
-1. **Explore Examples**: Try the group chat and template examples
-2. **Customize Agents**: Modify agent configurations in config.yml
-3. **Build Plugins**: Create custom SK plugins for specialized functionality
-4. **Deploy**: Use Azure AI Foundry for production deployment
-
-## 🔄 Framework Comparison
-
-| Feature | Semantic Kernel | LangChain |
-|---------|----------------|-----------|
-| **Enterprise Focus** | ✅ Microsoft-backed | 🔶 Community-driven |
-| **Azure Integration** | ✅ Native | 🔶 Via adapters |
-| **Type Safety** | ✅ Strong typing | 🔶 Dynamic typing |
-| **Planning** | ✅ Built-in | 🔶 External tools |
-| **Ecosystem** | 🔶 Growing | ✅ Extensive |
-| **Learning Curve** | 🔶 Structured | ✅ Gentle |
-
-Choose Semantic Kernel for enterprise applications requiring structured, type-safe AI orchestration with native Azure integration.
+Ready to customise? Tweak `config.yml`, add new agents under `agents/`, and extend the router with your own heuristics. The Python and .NET backends now share the same configuration story, making cross-platform experimentation painless.
