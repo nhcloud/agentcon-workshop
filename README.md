@@ -1,6 +1,13 @@
 # Azure Multi-Agent Workshop 
 
-A comprehensive workshop for building sophisticated AI agent applications using Azure OpenAI services. Choose from **Python** (LangChain & Semantic Kernel) or **.NET** (Semantic Kernel) implementations to learn multi-agent architectures.
+A comprehensive workshop for## 📚 Documentation
+
+- **[☁️ Azure AI Services Setup](docs/AI_SERVICES_GUIDE.md)** - Complete Azure setup guide
+- **[🐍 Python LangChain](Backend/python/langchain/README.md)** - Complete LangChain guide
+- **[🐍 Python Semantic Kernel](Backend/python/sk/README.md)** - Complete Python SK guide  
+- **[🔷 .NET Semantic Kernel](Backend/dotnet/sk/README.md)** - Complete .NET guide
+- **[⚙️ Environment Guide](docs/ENVIRONMENT_GUIDE.md)** - Azure configuration
+- **[👥 Group Chat Guide](docs/GROUP_CHAT.md)** - Multi-agent patternsng sophisticated AI agent applications using Azure OpenAI services. Choose from **Python** (LangChain & Semantic Kernel) or **.NET** (Semantic Kernel) implementations to learn multi-agent architectures.
 
 ## 🚀 Quick Start
 
@@ -45,8 +52,11 @@ npm install && npm start
 ## 📋 Prerequisites
 
 - **Azure Account** with Azure OpenAI Service access
+- **Azure AI Services Setup** (Required): **[Complete Azure Setup Guide →](docs/AI_SERVICES_GUIDE.md)**
 - **Platform-specific requirements**: See platform README for details
 - **Optional**: Azure AI Foundry for enterprise features
+
+> **⚠️ Azure Services Required**: You must have Azure AI services set up to run this workshop. If you encounter issues during setup, you can optionally use the shared `.env` file provided during the workshop instructions.
 
 ## 🏗️ Workshop Architecture
 
