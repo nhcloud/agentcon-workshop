@@ -62,10 +62,14 @@ dotnet build
 
 ## 4. Set up the frontend
 
+Install the React dependencies from the repo root:
+
 ```powershell
 cd frontend
 npm install
 ```
+
+> 💡 If you prefer to stay at the root, you can run `npm install --prefix frontend` instead.
 
 ## 5. Quick validation
 
