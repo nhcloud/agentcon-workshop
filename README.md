@@ -61,6 +61,8 @@ npm install && npm start
 
 This workshop demonstrates modern multi-agent patterns:
 
+![Multi-Agent Conversation Architecture](docs/img/multi-agent-conversation.png)
+
 - **🤖 Multi-Agent Systems**: Collaborative AI conversations
 - **🔄 Agent Routing**: Intelligent request distribution  
 - **💬 Group Chat**: Multi-participant AI discussions
