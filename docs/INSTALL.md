@@ -85,4 +85,4 @@ dotnet build Backend\dotnet\sk\DotNetSemanticKernel.csproj
 
 ## 6. Next steps
 
-With the tooling installed and dependencies restored, follow the [Azure AI Services Guide](AI_SERVICES_GUIDE.md) to provision Azure resources, then start the backend(s) and frontend per their README instructions.
+With the tooling installed and dependencies restored, follow the [Azure AI Services Guide](AI_SERVICES.md) to provision Azure resources, then start the backend(s) and frontend per their README instructions.

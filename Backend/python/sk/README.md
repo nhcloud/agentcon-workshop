@@ -133,7 +133,7 @@ python validate_structure.py
 ## 📚 Related Guides
 
 - [Project README](../../../README.md)
-- [Azure AI Services setup](../../../docs/AI_SERVICES_GUIDE.md)
+- [Azure AI Services setup](../../../docs/AI_SERVICES.md)
 - [Installation checklist](../../../docs/INSTALL.md)
 - [Group chat deep dive](../../../docs/GROUP_CHAT.md)
 
