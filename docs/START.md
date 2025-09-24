@@ -4,7 +4,7 @@ Follow this sequence to experience the full agent workshop stack across .NET and
 
 ## Step 1 – Prepare your local environment
 
-Complete the tooling and project setup described in [`docs/INSTALL.md`](docs/INSTALL.md). When finished you should have:
+Complete the tooling and project setup described in [`docs/INSTALL.md`](INSTALL.md). When finished you should have:
 
 - Required runtimes (Python 3.11.7+, .NET 9, Node.js 18.x, npm 9.x)
 - A repo-root virtual environment (`.venv`) activated
