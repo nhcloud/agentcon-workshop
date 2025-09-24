@@ -10,7 +10,7 @@ Pick your stack, follow the dedicated README, and connect the shared React front
 ## 📚 Documentation
 
 - **[🚀 Installation Checklist](docs/INSTALL.md)** – Tools you need before running anything
-- **[☁️ Azure AI Services Setup](docs/AI_SERVICES_GUIDE.md)** – Provision Azure OpenAI + Foundry resources
+- **[☁️ Azure AI Services Setup](docs/AI_SERVICES.md)** – Provision Azure OpenAI + Foundry resources
 - **[🐍 Python LangChain](Backend/python/langchain/README.md)** – LangChain backend guide
 - **[🐍 Python Semantic Kernel](Backend/python/sk/README.md)** – Semantic Kernel (Python) guide
 - **[🔷 .NET Semantic Kernel](Backend/dotnet/sk/README.md)** – Semantic Kernel (.NET) guide
@@ -59,7 +59,7 @@ npm install && npm start
 ## 📋 Prerequisites
 
 - **Azure Account** with Azure OpenAI Service access
-- **Azure AI Services Setup** (Required): **[Complete Azure Setup Guide →](docs/AI_SERVICES_GUIDE.md)**
+- **Azure AI Services Setup** (Required): **[Complete Azure Setup Guide →](docs/AI_SERVICES.md)**
 - **Platform-specific requirements**: See platform README for details
 - **Optional**: Azure AI Foundry for enterprise features
 

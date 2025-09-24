@@ -63,3 +63,5 @@ pre-commit
 # Additional dependencies
 numpy  # Required by some AI models
 cryptography  # For secure operations
+
+ipykernel

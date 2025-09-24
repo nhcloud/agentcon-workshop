@@ -153,7 +153,7 @@ Because `AgentInstructionsService` binds YAML at startup you can adjust prompts 
 
 - [Root project README](../../../README.md)
 - [Python Semantic Kernel backend](../sk/README.md) for parity details
-- [Azure AI Services Guide](../../../docs/AI_SERVICES_GUIDE.md)
+- [Azure AI Services Guide](../../../docs/AI_SERVICES.md)
 - [Installation checklist](../../../docs/INSTALL.md)
 
 ---

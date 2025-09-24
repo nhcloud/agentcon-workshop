@@ -13,7 +13,7 @@ Complete the tooling and project setup described in [`docs/INSTALL.md`](docs/INS
 
 ## Step 2 – Configure Azure resources
 
-Provision Azure OpenAI (and optionally Azure AI Foundry) resources by following [`docs/AI_SERVICES_GUIDE.md`](docs/AI_SERVICES_GUIDE.md). Capture the endpoint URLs, API keys, deployment names, and agent identifiers you will paste into `Backend/.env`.
+Provision Azure OpenAI (and optionally Azure AI Foundry) resources by following [`docs/AI_SERVICES.md`](AI_SERVICES.md). Capture the endpoint URLs, API keys, deployment names, and agent identifiers you will paste into `Backend/.env`.
 
 ## Step 3 – Explore the .NET Semantic Kernel workshop
 
