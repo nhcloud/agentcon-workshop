@@ -6,14 +6,24 @@ Set up the workshop locally by installing the required tooling, copying the shar
 
 Install the following software and confirm the versions from a new terminal:
 
-| Tool | Minimum Version | Verify |
-| --- | --- | --- |
-| Python | 3.11.7 | `python --version`
-| .NET SDK | 9.0 | `dotnet --version`
-| Node.js | 18.x | `node --version`
-| npm | 9.x | `npm --version`
-| Git | Latest | `git --version`
-| Visual Studio Code (optional) | Latest | Launch VS Code and install the Python, Jupyter, and C# Dev Kit extensions |
+| Tool | Minimum Version | Verify | Link |
+| --- | --- | --- | --- |
+| Python | 3.11.7 | `python --version` | https://www.python.org/downloads/
+| .NET SDK | 9.0 | `dotnet --version` | https://dotnet.microsoft.com/en-us/download/dotnet/9.0
+| Node.js | 18.x | `node --version` | https://nodejs.org/en/download
+| npm | 9.x | `npm --version` | 
+| Git | Latest | `git --version` | https://git-scm.com/downloads
+| Visual Studio Code | Latest | Launch VS Code and install the Python, Jupyter, and C# Dev Kit extensions | https://code.visualstudio.com/download |
+
+
+> 💡 Install these VS Code extensions:
+- Python
+- Jupyter
+- .NET Install Tool
+- .NET Extension Pack
+- C# Dev Kit
+- Azure CLI Tools
+
 
 > 💡 Working with Azure resources? Install the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) and run `az login`.
 
@@ -22,10 +32,16 @@ Install the following software and confirm the versions from a new terminal:
 All backends read secrets from a single `.env` file. Copy the template once at the repo root and edit the values:
 
 ```powershell
-cd Backend
-copy env.template .env      # Windows PowerShell
-# or
-cp env.template .env        # macOS/Linux
+# Windows PowerShell (from repo root)
+Copy-Item Backend\env.template dotnet\sk\.env
+Copy-Item Backend\env.template python\sk\.env
+Copy-Item Backend\env.template python\langchain\.env
+
+# macOS/Linux (from repo root)
+cp Backend/env.template dotnet/sk/.env
+cp Backend/env.template python/sk/.env
+cp Backend/env.template python/langchain/.env
+
 ```
 
 Update the new `Backend/.env` with your Azure OpenAI endpoint, API key, deployment name, and (optionally) Azure AI Foundry project settings. The file is ignored by Git.
