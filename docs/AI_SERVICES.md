@@ -116,7 +116,7 @@ Then select **"Add Logic App action"**.
 
 ![Screenshot](img/image20.png)
 
-Then click **"Send email"**.
+Then click **"Send email"**.  If you do not see this option then click **"Send Email using Outlook"**.
 
 ![Screenshot](img/image21.png)
 
