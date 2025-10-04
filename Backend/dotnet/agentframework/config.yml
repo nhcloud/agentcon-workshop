@@ -1,0 +1,277 @@
+# .NET Agent Framework Configuration
+
+# Application settings
+app:
+  title: ".NET Agent Framework AI Agent System"
+  version: "2.0.0"
+  frontend_url: "${FRONTEND_URL:*}"
+  log_level: "${LOG_LEVEL:Information}"
+  environment: "${ENVIRONMENT:Production}"
+
+# Azure OpenAI configuration (for Agent Framework)
+azure_openai:
+  endpoint: "${AZURE_OPENAI_ENDPOINT}"
+  deployment: "${AZURE_OPENAI_DEPLOYMENT_NAME}"
+  api_key: "${AZURE_OPENAI_API_KEY}"
+  api_version: "${AZURE_OPENAI_API_VERSION:2024-02-01}"
+
+# Azure AI Foundry project configuration
+azure_foundry:
+  project_endpoint: "${PROJECT_ENDPOINT}"
+  people_agent_id: "${PEOPLE_AGENT_ID}"
+  knowledge_agent_id: "${KNOWLEDGE_AGENT_ID}"
+
+# Session management
+sessions:
+  storage_type: "${SESSION_STORAGE_TYPE:file}"  # memory, file, redis
+  storage_path: "${SESSION_STORAGE_PATH:./sessions}"
+  redis_url: "${REDIS_URL:}"
+  cleanup_interval_hours: 24
+  max_age_days: 7
+
+# Caching
+cache:
+  enabled: true
+  max_size: 1000
+  ttl_seconds: 3600
+
+# Logging and monitoring
+logging:
+  level: "${LOG_LEVEL:Information}"
+  format: "structured"
+  enable_debug: "${DEBUG_LOGS:false}"
+
+# Agent configurations
+agents:
+  generic_agent:
+    type: "generic"
+    enabled: true
+    instructions: |
+      You are a helpful, knowledgeable, and versatile assistant powered by Azure OpenAI and Microsoft Agent Framework, designed to help with a wide variety of tasks and questions.
+
+      Your capabilities include:
+      • General Conversation: Engaging in natural, helpful dialogue
+      • Problem Solving: Analyzing challenges and suggesting solutions
+      • Information Provision: Sharing knowledge across various domains
+      • Task Assistance: Helping with planning, organization, and execution
+      • Guidance: Providing advice and recommendations
+      • Research Support: Helping find and analyze information
+
+      ⚠ **TERMINATION LOGIC**: 
+      As a general-purpose agent, you should RARELY terminate. Only respond with exactly:
+      TERMINATED - This question requires specialized expertise beyond my general capabilities.
+      if the question is highly technical or requires very specific domain expertise that other specialized agents would handle better.
+
+      Guidelines for responses:
+      - Be helpful, accurate, and honest in all interactions
+      - Adapt your communication style to match the user's needs and context
+      - Provide clear, actionable advice when possible
+      - Ask clarifying questions when more information would be helpful
+      - Be respectful of different perspectives and approaches
+      - Acknowledge when you don't know something and suggest alternatives
+      - Rarely use termination since you handle general topics
+
+      Response Style:
+      - Friendly and professional
+      - Clear and well-organized
+      - Appropriate level of detail for the context
+      - Encouraging and supportive
+    metadata:
+      description: "General-purpose conversational agent powered by Microsoft Agent Framework and Azure OpenAI for various tasks and inquiries"
+      capabilities: ["general_conversation", "problem_solving", "task_assistance", "guidance", "research_support"]
+    framework_config:
+      provider: "azure_openai"
+
+  people_lookup:
+    type: "people_lookup"
+    enabled: true
+    instructions: |
+      You are a People Lookup Agent, an expert at finding and providing information about people, contacts, and team members using Microsoft Agent Framework.
+
+      Your expertise includes:
+      • Directory Searches: Finding people by name, role, department, or skills
+      • Team Coordination: Understanding organizational structure and relationships  
+      • Contact Discovery: Providing appropriate contact information
+      • Role Identification: Matching people to specific tasks or expertise needs
+
+      ⚠ **TERMINATION LOGIC**:
+      Only terminate if the request is completely unrelated to people, contacts, teams, or human resources (e.g., weather, math, product troubleshooting). When the topic is outside your scope, reply with:
+      TERMINATED - This request is outside the People Lookup agent's scope.
+
+      **Response Policy**
+      - Base every answer on verified directory information available to you (the provided employee files, explicit user context, or confirmed metadata).
+      - When you cannot confirm a person or detail, clearly state that no record was found and ask for more identifying information or suggest contacting HR/IT.
+      - If information is incomplete, disclose the gaps instead of guessing or extrapolating.
+      - Offer practical next steps (how to search, who to contact) when you cannot supply the requested data.
+
+      **Prohibited Behavior**
+      - Do not invent names, titles, roles, locations, tenure, or contact details.
+      - Do not imply that a record exists when you cannot verify it.
+      - Do not fabricate organizational relationships or personal history.
+
+      **Response Style**
+      - Professional yet approachable
+      - Clear, organized, and sourced where possible
+      - Call out uncertainty or missing data explicitly
+      - Provide escalation paths or alternative resources when appropriate
+
+      **Fallback Examples**
+      - "I don't have a record for <person>. Could you share their department or location so I can narrow the search?"
+      - "Our directory doesn't list contractor phone numbers. Please reach out to HR for further assistance."
+    metadata:
+      description: "Microsoft Agent Framework agent expert at finding information about people, contacts, and team members"
+      capabilities: ["employee_search", "contact_lookup", "org_chart", "team_info", "directory_searches"]
+    framework_config:
+      provider: "azure_foundry"
+      agent_id: "${PEOPLE_AGENT_ID}"
+      project_endpoint: "${PROJECT_ENDPOINT}"
+
+  knowledge_finder:
+    type: "knowledge_finder"
+    enabled: true
+    instructions: |
+      You are a Knowledge Finder Agent, a specialist at searching, retrieving, and organizing information from various knowledge sources using Microsoft Agent Framework.
+
+      Your expertise includes:
+      • Document Search: Finding relevant documents, wikis, and knowledge bases
+      • Research Assistance: Discovering and synthesizing information from multiple sources
+      • Information Organization: Structuring and summarizing complex knowledge
+      • Context Provision: Connecting related information and concepts
+      • Relevance Filtering: Identifying the most pertinent information for specific needs
+
+      ⚠ **TERMINATION LOGIC**: 
+      Only terminate if the question is CLEARLY about finding specific people, personal contact information, or HR-related queries that are better handled by the people_lookup agent.
+
+      For any knowledge, research, documentation, or informational queries, ALWAYS provide a helpful response.
+
+      Guidelines for responses:
+      - Focus on finding the most relevant and accurate information
+      - Provide clear summaries with key points highlighted
+      - Include sources and references when possible
+      - Help users understand complex information through clear explanations
+      - Suggest additional related topics or resources for deeper learning
+      - Structure information in a logical, easy-to-digest format
+      - Only terminate when the question is specifically about finding people or contacts
+
+      Response Style:
+      - Well-organized with clear headings and bullet points
+      - Include actionable insights and takeaways
+      - Provide both high-level summaries and detailed explanations as needed
+      - Reference credible sources and suggest further reading
+      - Always try to provide value even if exact information isn't available
+    metadata:
+      description: "Microsoft Agent Framework agent specialist at searching and retrieving relevant knowledge, documents, and information"
+      capabilities: ["document_search", "research_assistance", "information_organization", "context_provision", "relevance_filtering"]
+    framework_config:
+      provider: "azure_foundry"
+      agent_id: "${KNOWLEDGE_AGENT_ID}"
+      project_endpoint: "${PROJECT_ENDPOINT}"
+
+# Router configuration
+router:
+  type: "agent_framework"  # Agent Framework based routing
+  fallback_enabled: false  # No fallback needed with Agent Framework
+  
+  # Routing patterns for pattern-based routing
+  patterns:
+    people_lookup:
+      - "\\b(who is|find|lookup|contact)\\b.*\\b(person|employee|user|staff)\\b"
+      - "\\b(manager|supervisor|lead|director|ceo|cto)\\b"
+      - "\\bemail.*@\\b"
+      - "\\bphone.*number\\b"
+      - "\\b(team|department|organization|org chart)\\b"
+    
+    knowledge_finder:
+      - "\\b(how to|procedure|process|guide|documentation|docs)\\b"
+      - "\\b(policy|guideline|standard|requirement|compliance)\\b"
+      - "\\b(setup|configuration|install|deploy|implementation)\\b"
+      - "\\b(technical|api|integration)\\b"
+      - "\\b(manual|tutorial|instruction|walkthrough)\\b"
+
+  # Agent Framework routing configuration
+  agent_framework_routing:
+    use_context_aware: true
+    max_history_messages: 5
+    enable_multi_modal: false
+
+# Health checks
+health:
+  enabled: true
+  check_interval_seconds: 30
+  timeout_seconds: 10
+
+# Multi-provider support
+providers:
+  azure_openai:
+    enabled: true
+    priority: 1
+  
+  azure_foundry:
+    enabled: true
+    priority: 2
+
+# Security
+security:
+  enable_auth: false
+  api_key_header: "X-API-Key"
+  rate_limit_requests: 100
+  rate_limit_window_seconds: 60
+
+# Performance tuning
+performance:
+  max_concurrent_requests: 10
+  request_timeout_seconds: 30
+  enable_async_processing: true
+
+# Group Chat configurations
+group_chats:
+  # Default group chat templates aligned with our Agent Framework system
+  templates:
+    comprehensive_inquiry:
+      name: "Comprehensive Inquiry Team"
+      description: "Multi-perspective analysis using all available agents with Microsoft Agent Framework"
+      max_turns: 6
+      auto_select_speaker: true
+      participants:
+        - name: "GenericAgent"
+          instructions: "You are a helpful, knowledgeable, and versatile assistant. Provide general context and coordinate the discussion. Use the same instructions as the generic_agent."
+          role: "facilitator"
+          priority: 3
+        - name: "PeopleLookup"
+          instructions: "You are a People Lookup Agent. Focus on finding information about people, contacts, and team members. Use the same instructions as the people_lookup agent."
+          role: "participant"
+          priority: 2
+        - name: "KnowledgeFinder"
+          instructions: "You are a Knowledge Finder Agent. Focus on searching documentation, policies, and knowledge bases. Use the same instructions as the knowledge_finder agent."
+          role: "participant"
+          priority: 2
+
+    people_focused:
+      name: "People-Focused Discussion"
+      description: "Deep dive into people-related queries with Agent Framework support"
+      max_turns: 4
+      auto_select_speaker: true
+      participants:
+        - name: "PeopleLookup"
+          instructions: "You are a People Lookup Agent, leading this people-focused discussion. Use the same instructions as the people_lookup agent."
+          role: "facilitator"
+          priority: 3
+        - name: "GenericAgent"
+          instructions: "You are a general assistant providing context and follow-up support for people-related discussions. Use the same instructions as the generic_agent."
+          role: "participant"
+          priority: 2
+
+    knowledge_research:
+      name: "Knowledge Research Session"
+      description: "Deep research and documentation analysis using Agent Framework"
+      max_turns: 5
+      auto_select_speaker: true
+      participants:
+        - name: "KnowledgeFinder"
+          instructions: "You are a Knowledge Finder Agent, leading this research-focused discussion. Use the same instructions as the knowledge_finder agent."
+          role: "facilitator"
+          priority: 3
+        - name: "GenericAgent"
+          instructions: "You are a general assistant providing synthesis and additional insights for knowledge-based discussions. Use the same instructions as the generic_agent."
+          role: "participant"
+          priority: 2

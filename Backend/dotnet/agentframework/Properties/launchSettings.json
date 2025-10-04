@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "DotNetAgentFramework": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "http://localhost:8000;https://localhost:51038"
+    }
+  }
+}

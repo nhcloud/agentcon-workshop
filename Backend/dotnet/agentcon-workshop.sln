@@ -4,7 +4,7 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "backend", "backend", "{1AE8ACA6-933B-BF2A-3671-3E2EAC007D16}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetSemanticKernel", "sk\DotNetSemanticKernel.csproj", "{218AE405-5DE9-6843-5279-CB32B1C38D36}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetAgentFramework", "agentframework\DotNetAgentFramework.csproj", "{27F02982-C12C-1E44-F67C-6773F4B12C13}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -12,16 +12,16 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{218AE405-5DE9-6843-5279-CB32B1C38D36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{218AE405-5DE9-6843-5279-CB32B1C38D36}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{218AE405-5DE9-6843-5279-CB32B1C38D36}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{218AE405-5DE9-6843-5279-CB32B1C38D36}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27F02982-C12C-1E44-F67C-6773F4B12C13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27F02982-C12C-1E44-F67C-6773F4B12C13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27F02982-C12C-1E44-F67C-6773F4B12C13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27F02982-C12C-1E44-F67C-6773F4B12C13}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{218AE405-5DE9-6843-5279-CB32B1C38D36} = {1AE8ACA6-933B-BF2A-3671-3E2EAC007D16}
+		{27F02982-C12C-1E44-F67C-6773F4B12C13} = {1AE8ACA6-933B-BF2A-3671-3E2EAC007D16}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {82869E73-C58A-426E-8E92-EEF1F3AF0DB6}
