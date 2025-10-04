@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Options;
 using DotNetAgentFramework.Configuration;
 using DotNetAgentFramework.Agents;
-using Azure.Identity;
 
 namespace DotNetAgentFramework.Services;
 
@@ -112,12 +111,11 @@ public class AgentService : IAgentService
             }
 
             // Get Azure OpenAI configuration for the foundry agent
-            var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? _azureConfig?.AzureOpenAI?.Endpoint ?? "";
             var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME") ?? _azureConfig?.AzureOpenAI?.DeploymentName ?? "";
             
-            if (string.IsNullOrEmpty(endpoint))
+            if (string.IsNullOrEmpty(deploymentName))
             {
-                throw new InvalidOperationException("Azure OpenAI endpoint is required for Azure AI Foundry agent");
+                throw new InvalidOperationException("Azure OpenAI deployment name is required for Azure AI Foundry agent");
             }
 
             Azure.Core.TokenCredential? credential = null;
@@ -141,7 +139,6 @@ public class AgentService : IAgentService
                 description: description,
                 instructions: instructions,
                 modelDeployment: deploymentName,
-                endpoint: endpoint,
                 credential: credential,
                 logger: logger,
                 managedIdentityClientId: _azureConfig.AzureAIFoundry.ManagedIdentityClientId

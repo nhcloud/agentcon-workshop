@@ -1,6 +1,5 @@
 using DotNetAgentFramework.Services;
 using Azure.AI.OpenAI;
-using Azure.Identity;
 using Microsoft.Extensions.Options;
 using DotNetAgentFramework.Configuration;
 

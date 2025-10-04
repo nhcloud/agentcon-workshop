@@ -1,5 +1,3 @@
-using DotNetAgentFramework.Models;
-
 namespace DotNetAgentFramework.Services;
 
 /// <summary>

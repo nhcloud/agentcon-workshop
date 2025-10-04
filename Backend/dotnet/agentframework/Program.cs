@@ -98,7 +98,7 @@ builder.Services.Configure<AzureAIConfig>(options =>
         }
     }
     
-    // Azure AI Foundry configuration
+    // Azure AI Foundry configuration using new Agent Framework
     if (!string.IsNullOrEmpty(projectEndpoint))
     {
         options.AzureAIFoundry = new AzureAIFoundryConfig
@@ -125,7 +125,7 @@ builder.Services.Configure<AppConfig>(builder.Configuration);
 // Register agent instructions service
 builder.Services.AddSingleton<AgentInstructionsService>();
 
-// Add Agent Framework services
+// Add Agent Framework services - simplified for the new Agent Framework pattern
 builder.Services.AddScoped<IAgentService, AgentService>();
 builder.Services.AddScoped<IGroupChatService, GroupChatService>();
 builder.Services.AddSingleton<ISessionManager, SessionManager>();
@@ -213,10 +213,16 @@ app.MapGet("/health", (Microsoft.Extensions.Options.IOptions<AzureAIConfig> conf
     { 
         status = "healthy", 
         timestamp = DateTime.UtcNow,
+        framework = "Microsoft Agent Framework",
         configuration = new
         {
             azure_openai = hasAzureOpenAI ? "configured" : "missing",
             azure_ai_foundry = hasAzureFoundry ? "configured" : "missing",
+            foundry_agents = new
+            {
+                people_agent = !string.IsNullOrEmpty(azureConfig?.AzureAIFoundry?.PeopleAgentId) ? "configured" : "missing",
+                knowledge_agent = !string.IsNullOrEmpty(azureConfig?.AzureAIFoundry?.KnowledgeAgentId) ? "configured" : "missing"
+            },
             timeout_settings = new
             {
                 request_timeout = "5 minutes (group chat), 2 minutes (single chat)",
@@ -233,6 +239,6 @@ app.MapGet("/health", (Microsoft.Extensions.Options.IOptions<AzureAIConfig> conf
 Console.WriteLine("?? Starting .NET Agent Framework API...");
 Console.WriteLine("?? Swagger UI available at: http://localhost:8000");
 Console.WriteLine("?? Health endpoint: http://localhost:8000/health");
-Console.WriteLine("?? Agent Framework with Azure OpenAI integration ready!");
+Console.WriteLine("?? Microsoft Agent Framework with Azure AI Foundry integration ready!");
 
 app.Run();

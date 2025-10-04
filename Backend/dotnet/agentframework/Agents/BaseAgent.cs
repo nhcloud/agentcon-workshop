@@ -1,8 +1,6 @@
 using Azure.AI.OpenAI;
-using Azure.Identity;
-using OpenAI;
 using OpenAI.Chat;
-using DotNetAgentFramework.Models;
+using Azure.AI.Agents.Persistent;
 
 namespace DotNetAgentFramework.Agents;
 
@@ -13,15 +11,15 @@ public interface IAgent
     string Instructions { get; }
     Task<string> RespondAsync(string message, string? context = null);
     Task<string> RespondAsync(string message, List<GroupChatMessage>? conversationHistory = null, string? context = null);
-    Task<ChatResponse> ChatAsync(ChatRequest request);
-    Task<ChatResponse> ChatWithHistoryAsync(ChatRequest request, List<GroupChatMessage>? conversationHistory = null);
+    Task<Models.ChatResponse> ChatAsync(ChatRequest request);
+    Task<Models.ChatResponse> ChatWithHistoryAsync(ChatRequest request, List<GroupChatMessage>? conversationHistory = null);
     Task InitializeAsync();
 }
 
 public abstract class BaseAgent : IAgent
 {
     protected readonly ILogger _logger;
-    private ChatClient? _chatClient;
+    protected ChatClient? _chatClient;
 
     public abstract string Name { get; }
     public abstract string Description { get; }
@@ -68,8 +66,8 @@ public abstract class BaseAgent : IAgent
                 systemPrompt += $"\n\nAdditional Context: {context}";
             }
 
-            // Build messages for the chat completion
-            var messages = new List<ChatMessage>
+            // Build messages for the chat completion using OpenAI.Chat types
+            var messages = new List<OpenAI.Chat.ChatMessage>
             {
                 new SystemChatMessage(systemPrompt)
             };
@@ -109,12 +107,12 @@ public abstract class BaseAgent : IAgent
         }
     }
 
-    public virtual async Task<ChatResponse> ChatAsync(ChatRequest request)
+    public virtual async Task<Models.ChatResponse> ChatAsync(ChatRequest request)
     {
         return await ChatWithHistoryAsync(request, null);
     }
 
-    public virtual async Task<ChatResponse> ChatWithHistoryAsync(ChatRequest request, List<GroupChatMessage>? conversationHistory = null)
+    public virtual async Task<Models.ChatResponse> ChatWithHistoryAsync(ChatRequest request, List<GroupChatMessage>? conversationHistory = null)
     {
         var sessionId = request.SessionId ?? Guid.NewGuid().ToString();
         var startTime = DateTime.UtcNow;
@@ -122,7 +120,7 @@ public abstract class BaseAgent : IAgent
         var content = await RespondAsync(request.Message, conversationHistory, request.Context);
         var endTime = DateTime.UtcNow;
 
-        return new ChatResponse
+        return new Models.ChatResponse
         {
             Content = content,
             Agent = Name,
@@ -204,7 +202,7 @@ public class AzureOpenAIAgent : BaseAgent
 }
 
 /// <summary>
-/// Azure AI Foundry Agent - Fallback implementation using Azure OpenAI
+/// Azure AI Foundry Agent using PersistentAgentsClient following the official sample pattern
 /// </summary>
 public class AzureAIFoundryAgent : BaseAgent
 {
@@ -212,8 +210,10 @@ public class AzureAIFoundryAgent : BaseAgent
     private readonly string _projectEndpoint;
     private readonly string? _managedIdentityClientId;
     private readonly string _modelDeployment;
-    private readonly string _endpoint;
     private readonly Azure.Core.TokenCredential? _credential;
+    private PersistentAgentsClient? _azureAgentClient;
+    private Microsoft.Agents.AI.ChatClientAgent? _foundryAgent;
+    private readonly Dictionary<string, Microsoft.Agents.AI.AgentThread> _threadCache = new();
 
     public override string Name { get; }
     public override string Description { get; }
@@ -226,7 +226,6 @@ public class AzureAIFoundryAgent : BaseAgent
         string description,
         string instructions,
         string modelDeployment,
-        string endpoint,
         Azure.Core.TokenCredential? credential,
         ILogger<AzureAIFoundryAgent> logger,
         string? managedIdentityClientId = null) 
@@ -239,7 +238,6 @@ public class AzureAIFoundryAgent : BaseAgent
         Description = description;
         Instructions = instructions;
         _modelDeployment = modelDeployment;
-        _endpoint = endpoint;
         _credential = credential ?? new DefaultAzureCredential();
     }
 
@@ -249,15 +247,14 @@ public class AzureAIFoundryAgent : BaseAgent
         {
             _logger.LogInformation("Initializing Azure AI Foundry agent {AgentId} for endpoint: {Endpoint}", _agentId, _projectEndpoint);
 
-            // For now, use Azure OpenAI as the backend since the full Azure AI Foundry
-            // integration with the new Agent Framework is still being developed
-            var azureClient = new AzureOpenAIClient(new Uri(_endpoint), _credential);
-            var chatClient = azureClient.GetChatClient(_modelDeployment);
-            
-            // Set the chat client for the base agent to use
-            SetChatClient(chatClient);
-            
-            _logger.LogInformation("Initialized Azure AI Foundry agent {AgentName} with ID {AgentId}", Name, _agentId);
+            // Create PersistentAgentsClient following the sample pattern
+            _azureAgentClient = new PersistentAgentsClient(_projectEndpoint, _credential);
+
+            // Create or get the AI agent using the sample pattern
+            _foundryAgent = await _azureAgentClient.GetAIAgentAsync(_agentId
+                               );
+
+            _logger.LogInformation("Initialized Azure AI Foundry agent {AgentName} with ID {AgentId}", Name, _foundryAgent.Id);
             await Task.CompletedTask;
         }
         catch (Exception ex)
@@ -269,17 +266,106 @@ public class AzureAIFoundryAgent : BaseAgent
 
     public override async Task<string> RespondAsync(string message, List<GroupChatMessage>? conversationHistory = null, string? context = null)
     {
-        // Add specific handling for Foundry agents if needed
-        var enhancedContext = context;
-        if (!string.IsNullOrEmpty(context))
+        // Ensure agent is initialized
+        if (_foundryAgent == null || _azureAgentClient == null)
         {
-            enhancedContext += $"\n\nAgent ID: {_agentId}\nProject Endpoint: {_projectEndpoint}";
-        }
-        else
-        {
-            enhancedContext = $"Agent ID: {_agentId}\nProject Endpoint: {_projectEndpoint}";
+            await InitializeAsync();
         }
 
-        return await base.RespondAsync(message, conversationHistory, enhancedContext);
+        if (_foundryAgent == null || _azureAgentClient == null)
+        {
+            throw new InvalidOperationException("Azure AI Foundry agent not properly initialized");
+        }
+
+        try
+        {
+            _logger.LogInformation("Processing message with Azure AI Foundry agent {AgentId}", _foundryAgent.Id);
+
+            // Get or create thread for this conversation
+            var thread = GetOrCreateThread(conversationHistory);
+
+            // Create agent options following the sample pattern
+            var agentOptions = new Microsoft.Agents.AI.ChatClientAgentRunOptions(new() { MaxOutputTokens = 1000 });
+
+            // Add context to message if provided
+            var enhancedMessage = message;
+            if (!string.IsNullOrEmpty(context))
+            {
+                enhancedMessage = $"{message}\n\nAdditional Context: {context}";
+            }
+
+            // Run the agent following the sample pattern
+            var result = await _foundryAgent.RunAsync(enhancedMessage, thread, agentOptions);
+            
+            // Extract content from the response - AgentRunResponse likely has a ToString() method or Response property
+            var responseText = result?.ToString() ?? "I apologize, but I couldn't generate a response from the Azure AI Foundry agent.";
+            
+            _logger.LogInformation("Azure AI Foundry agent {AgentId} generated response: {ResponseLength} characters", 
+                _foundryAgent.Id, responseText.Length);
+            
+            return responseText;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing with Azure AI Foundry agent {AgentId}", _foundryAgent?.Id);
+            throw;
+        }
+    }
+
+    private Microsoft.Agents.AI.AgentThread GetOrCreateThread(List<GroupChatMessage>? conversationHistory)
+    {
+        // Simple thread management - in production you might want more sophisticated caching
+        var threadKey = "default";
+        if (conversationHistory != null && conversationHistory.Any())
+        {
+            // Create a thread key based on conversation history
+            threadKey = $"conv_{conversationHistory.First().MessageId}";
+        }
+
+        if (!_threadCache.TryGetValue(threadKey, out var thread))
+        {
+            thread = _foundryAgent!.GetNewThread();
+            _threadCache[threadKey] = thread;
+            _logger.LogDebug("Created new thread for key: {ThreadKey}", threadKey);
+        }
+
+        return thread;
+    }
+
+    // Cleanup method to dispose of threads when agent is disposed
+    public async ValueTask DisposeAsync()
+    {
+        if (_azureAgentClient != null && _foundryAgent != null)
+        {
+            // Clean up threads
+            foreach (var thread in _threadCache.Values)
+            {
+                try
+                {
+                    if (thread is Microsoft.Agents.AI.ChatClientAgentThread chatThread)
+                    {
+                        await _azureAgentClient.Threads.DeleteThreadAsync(chatThread.ConversationId);
+                        _logger.LogDebug("Cleaned up thread: {ConversationId}", chatThread.ConversationId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to cleanup thread for agent {AgentName}", Name);
+                }
+            }
+            
+            // Clean up agent
+            //try
+            //{
+            //    await _azureAgentClient.Administration.DeleteAgentAsync(_foundryAgent.Id);
+            //    _logger.LogDebug("Cleaned up agent: {AgentId}", _foundryAgent.Id);
+            //}
+            //catch (Exception ex)
+            //{
+            //    _logger.LogWarning(ex, "Failed to cleanup agent {AgentName}", Name);
+            //}
+        }
+        
+        _threadCache.Clear();
     }
 }
