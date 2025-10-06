@@ -1,4 +1,3 @@
-
 using DotNetAgentFramework.Configuration;
 
 namespace DotNetAgentFramework.Services;
@@ -24,21 +23,23 @@ public class AgentInstructionsService
         }
     }
 
-    public string GetInstructions(string agentName, string defaultInstructions)
+    public string GetInstructions(string agentName)
     {
         if (_agents.TryGetValue(agentName, out var agentDef) && !string.IsNullOrEmpty(agentDef.Instructions))
         {
             return agentDef.Instructions;
         }
-        return defaultInstructions;
+        
+        throw new InvalidOperationException($"Instructions not found for agent '{agentName}' in configuration. Please ensure the agent is properly configured in config.yml.");
     }
 
-    public string GetDescription(string agentName, string defaultDescription)
+    public string GetDescription(string agentName)
     {
         if (_agents.TryGetValue(agentName, out var agentDef) && !string.IsNullOrEmpty(agentDef.Metadata.Description))
         {
             return agentDef.Metadata.Description;
         }
-        return defaultDescription;
+        
+        throw new InvalidOperationException($"Description not found for agent '{agentName}' in configuration. Please ensure the agent is properly configured in config.yml.");
     }
 }
