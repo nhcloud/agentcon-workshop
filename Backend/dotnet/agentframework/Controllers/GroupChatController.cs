@@ -5,24 +5,16 @@ namespace DotNetAgentFramework.Controllers;
 
 [ApiController]
 [Produces("application/json")]
-public class GroupChatController : ControllerBase
+public class GroupChatController(
+    IGroupChatService groupChatService,
+    ISessionManager sessionManager,
+    IAgentService agentService,
+    ILogger<GroupChatController> logger) : ControllerBase
 {
-    private readonly IGroupChatService _groupChatService;
-    private readonly ISessionManager _sessionManager;
-    private readonly IAgentService _agentService;
-    private readonly ILogger<GroupChatController> _logger;
-
-    public GroupChatController(
-        IGroupChatService groupChatService, 
-        ISessionManager sessionManager,
-        IAgentService agentService,
-        ILogger<GroupChatController> logger)
-    {
-        _groupChatService = groupChatService;
-        _sessionManager = sessionManager;
-        _agentService = agentService;
-        _logger = logger;
-    }
+    private readonly IGroupChatService _groupChatService = groupChatService;
+    private readonly ISessionManager _sessionManager = sessionManager;
+    private readonly IAgentService _agentService = agentService;
+    private readonly ILogger<GroupChatController> _logger = logger;
 
     /// <summary>
     /// Start a group chat with multiple agents using Microsoft Agent Framework

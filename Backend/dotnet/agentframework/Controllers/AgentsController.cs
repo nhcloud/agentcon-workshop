@@ -6,16 +6,10 @@ namespace DotNetAgentFramework.Controllers;
 [ApiController]
 [Route("[controller]")]
 [Produces("application/json")]
-public class AgentsController : ControllerBase
+public class AgentsController(IAgentService agentService, ILogger<AgentsController> logger) : ControllerBase
 {
-    private readonly IAgentService _agentService;
-    private readonly ILogger<AgentsController> _logger;
-
-    public AgentsController(IAgentService agentService, ILogger<AgentsController> logger)
-    {
-        _agentService = agentService;
-        _logger = logger;
-    }
+    private readonly IAgentService _agentService = agentService;
+    private readonly ILogger<AgentsController> _logger = logger;
 
     /// <summary>
     /// Get all available agents

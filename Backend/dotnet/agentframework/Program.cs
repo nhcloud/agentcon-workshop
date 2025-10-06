@@ -3,6 +3,7 @@ using Swashbuckle.AspNetCore.SwaggerUI;
 using DotNetEnv;
 using DotNetAgentFramework.Configuration;
 using DotNetAgentFramework.Services;
+using NetEscapades.Configuration.Yaml;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -129,6 +130,7 @@ builder.Services.AddSingleton<AgentInstructionsService>();
 builder.Services.AddScoped<IAgentService, AgentService>();
 builder.Services.AddScoped<IGroupChatService, GroupChatService>();
 builder.Services.AddSingleton<ISessionManager, SessionManager>();
+builder.Services.AddScoped<IGroupChatTemplateService, GroupChatTemplateService>();
 
 // Add logging
 builder.Logging.ClearProviders();

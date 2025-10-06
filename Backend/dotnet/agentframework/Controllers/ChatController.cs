@@ -6,24 +6,18 @@ namespace DotNetAgentFramework.Controllers;
 [ApiController]
 [Route("[controller]")]
 [Produces("application/json")]
-public class ChatController : ControllerBase
+public class ChatController(
+    IAgentService agentService,
+    ISessionManager sessionManager,
+    IGroupChatService groupChatService,
+    IGroupChatTemplateService templateService,
+    ILogger<ChatController> logger) : ControllerBase
 {
-    private readonly IAgentService _agentService;
-    private readonly ISessionManager _sessionManager;
-    private readonly IGroupChatService _groupChatService;
-    private readonly ILogger<ChatController> _logger;
-
-    public ChatController(
-        IAgentService agentService, 
-        ISessionManager sessionManager,
-        IGroupChatService groupChatService,
-        ILogger<ChatController> logger)
-    {
-        _agentService = agentService;
-        _sessionManager = sessionManager;
-        _groupChatService = groupChatService;
-        _logger = logger;
-    }
+    private readonly IAgentService _agentService = agentService;
+    private readonly ISessionManager _sessionManager = sessionManager;
+    private readonly IGroupChatService _groupChatService = groupChatService;
+    private readonly IGroupChatTemplateService _templateService = templateService;
+    private readonly ILogger<ChatController> _logger = logger;
 
     /// <summary>
     /// Process a chat message - handles both single and multiple agents using Microsoft Agent Framework
@@ -92,7 +86,7 @@ public class ChatController : ControllerBase
             }
 
             // Single agent handling with conversation history
-            var agentName = request.Agents?.FirstOrDefault() ?? request.Agent ?? "generic_agent";
+            var agentName = request.Agents?.FirstOrDefault() ?? "generic_agent";
             
             _logger.LogInformation("Chat request for agent {AgentName} with {HistoryCount} previous messages: {Message}", 
                 agentName, conversationHistory.Count, request.Message);
@@ -144,13 +138,100 @@ public class ChatController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Agent not found: {AgentName}", request.Agent);
+            var agentName = request.Agents?.FirstOrDefault() ?? "unknown";
+            _logger.LogWarning(ex, "Agent not found: {AgentName}", agentName);
             return NotFound(new { detail = ex.Message });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in chat");
             return StatusCode(500, new { detail = "Internal server error during chat" });
+        }
+    }
+
+    /// <summary>
+    /// Get available group chat templates
+    /// Frontend expects: { templates: [] }
+    /// </summary>
+    [HttpGet("group-chat/templates")]
+    public async Task<ActionResult<object>> GetGroupChatTemplates()
+    {
+        try
+        {
+            var templates = await _templateService.GetAvailableTemplatesAsync();
+            
+            return Ok(new { 
+                templates = templates
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving group chat templates");
+            return StatusCode(500, new { detail = "Internal server error while retrieving templates" });
+        }
+    }
+
+    /// <summary>
+    /// Get detailed information about a specific template
+    /// </summary>
+    [HttpGet("group-chat/templates/{templateName}")]
+    public async Task<ActionResult<object>> GetGroupChatTemplate(string templateName)
+    {
+        try
+        {
+            var templateDetails = await _templateService.GetTemplateDetailsAsync(templateName);
+            
+            if (templateDetails == null)
+            {
+                return NotFound(new { detail = $"Template '{templateName}' not found" });
+            }
+            
+            return Ok(templateDetails);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting template {TemplateName}", templateName);
+            return StatusCode(500, new { detail = "Internal server error while retrieving template" });
+        }
+    }
+
+    /// <summary>
+    /// Create group chat from template
+    /// </summary>
+    [HttpPost("group-chat/from-template")]
+    public async Task<ActionResult<object>> CreateGroupChatFromTemplate([FromBody] CreateFromTemplateRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.TemplateName))
+            {
+                return BadRequest(new { detail = "Template name is required" });
+            }
+
+            var templateRequest = await _templateService.CreateFromTemplateAsync(request.TemplateName);
+            
+            if (templateRequest == null)
+            {
+                return NotFound(new { detail = $"Template '{request.TemplateName}' not found" });
+            }
+
+            var templateDetails = await _templateService.GetTemplateDetailsAsync(request.TemplateName);
+
+            return Ok(new
+            {
+                session_id = Guid.NewGuid().ToString(),
+                template_name = request.TemplateName,
+                name = templateDetails?.Name ?? request.TemplateName,
+                description = templateDetails?.Description ?? "",
+                participants = templateRequest.Agents,
+                status = "created",
+                config = templateRequest.Config
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating group chat from template {TemplateName}", request.TemplateName);
+            return StatusCode(500, new { detail = "Internal server error while creating group chat from template" });
         }
     }
 }

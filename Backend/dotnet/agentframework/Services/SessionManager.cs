@@ -12,16 +12,11 @@ public interface ISessionManager
     Task<SessionInfo> GetSessionInfoAsync(string sessionId);
 }
 
-public class SessionManager : ISessionManager
+public class SessionManager(ILogger<SessionManager> logger) : ISessionManager
 {
     private readonly ConcurrentDictionary<string, List<GroupChatMessage>> _sessions = new();
     private readonly ConcurrentDictionary<string, DateTime> _sessionCreationTimes = new();
-    private readonly ILogger<SessionManager> _logger;
-
-    public SessionManager(ILogger<SessionManager> logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger<SessionManager> _logger = logger;
 
     public Task<string> CreateSessionAsync()
     {

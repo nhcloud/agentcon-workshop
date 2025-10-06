@@ -7,9 +7,6 @@ public class ChatRequest
     [JsonPropertyName("message")]
     public string Message { get; set; } = string.Empty;
 
-    [JsonPropertyName("agent")]
-    public string? Agent { get; set; }
-
     [JsonPropertyName("session_id")]
     public string? SessionId { get; set; }
 
@@ -243,4 +240,67 @@ public class ConfigurationStatus
 
     [JsonPropertyName("configuration_source")]
     public string ConfigurationSource { get; set; } = "unknown";
+}
+
+/// <summary>
+/// Group Chat Template models
+/// </summary>
+public class GroupChatTemplateInfo
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = "";
+    
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+    
+    [JsonPropertyName("description")]
+    public string Description { get; set; } = "";
+    
+    [JsonPropertyName("max_turns")]
+    public int MaxTurns { get; set; }
+    
+    [JsonPropertyName("auto_select_speaker")]
+    public bool AutoSelectSpeaker { get; set; }
+    
+    [JsonPropertyName("participants_count")]
+    public int ParticipantsCount { get; set; }
+    
+    [JsonPropertyName("participants")]
+    public List<GroupChatParticipantInfo> Participants { get; set; } = new();
+}
+
+public class GroupChatTemplateDetails : GroupChatTemplateInfo
+{
+    [JsonPropertyName("participants_detail")]
+    public List<GroupChatParticipantDetails>? ParticipantsDetail { get; set; }
+}
+
+public class GroupChatParticipantInfo
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+    
+    [JsonPropertyName("role")]
+    public string Role { get; set; } = "";
+    
+    [JsonPropertyName("priority")]
+    public int Priority { get; set; }
+}
+
+public class GroupChatParticipantDetails : GroupChatParticipantInfo
+{
+    [JsonPropertyName("instructions")]
+    public string Instructions { get; set; } = "";
+    
+    [JsonPropertyName("max_consecutive_turns")]
+    public int MaxConsecutiveTurns { get; set; }
+}
+
+/// <summary>
+/// Request to create group chat from template
+/// </summary>
+public class CreateFromTemplateRequest
+{
+    [JsonPropertyName("template_name")]
+    public string TemplateName { get; set; } = "";
 }

@@ -8,22 +8,15 @@ namespace DotNetAgentFramework.Agents;
 /// <summary>
 /// People Lookup Agent - Azure AI Foundry agent for finding people information
 /// </summary>
-public class PeopleLookupAgent : BaseAgent
+public class PeopleLookupAgent(ILogger logger, AgentInstructionsService instructionsService, IOptions<AzureAIConfig>? azureConfig = null) : BaseAgent(logger)
 {
-    private readonly AgentInstructionsService _instructionsService;
-    private readonly AzureAIConfig? _azureConfig;
+    private readonly AgentInstructionsService _instructionsService = instructionsService;
+    private readonly AzureAIConfig? _azureConfig = azureConfig?.Value;
 
     public override string Name => "people_lookup";
     public override string Description => _instructionsService.GetDescription("people_lookup");
     
     public override string Instructions => _instructionsService.GetInstructions("people_lookup");
-
-    public PeopleLookupAgent(ILogger logger, AgentInstructionsService instructionsService, IOptions<AzureAIConfig>? azureConfig = null) 
-        : base(logger) 
-    {
-        _instructionsService = instructionsService;
-        _azureConfig = azureConfig?.Value;
-    }
 
     public override async Task InitializeAsync()
     {
@@ -61,22 +54,15 @@ public class PeopleLookupAgent : BaseAgent
 /// <summary>
 /// Knowledge Finder Agent - Azure AI Foundry agent for searching and retrieving information
 /// </summary>
-public class KnowledgeFinderAgent : BaseAgent
+public class KnowledgeFinderAgent(ILogger logger, AgentInstructionsService instructionsService, IOptions<AzureAIConfig>? azureConfig = null) : BaseAgent(logger)
 {
-    private readonly AgentInstructionsService _instructionsService;
-    private readonly AzureAIConfig? _azureConfig;
+    private readonly AgentInstructionsService _instructionsService = instructionsService;
+    private readonly AzureAIConfig? _azureConfig = azureConfig?.Value;
 
     public override string Name => "knowledge_finder";
     public override string Description => _instructionsService.GetDescription("knowledge_finder");
     
     public override string Instructions => _instructionsService.GetInstructions("knowledge_finder");
-
-    public KnowledgeFinderAgent(ILogger logger, AgentInstructionsService instructionsService, IOptions<AzureAIConfig>? azureConfig = null) 
-        : base(logger) 
-    {
-        _instructionsService = instructionsService;
-        _azureConfig = azureConfig?.Value;
-    }
 
     public override async Task InitializeAsync()
     {
@@ -114,22 +100,15 @@ public class KnowledgeFinderAgent : BaseAgent
 /// <summary>
 /// Generic Agent - Default agent for general-purpose conversations (Azure OpenAI)
 /// </summary>
-public class GenericAgent : BaseAgent
+public class GenericAgent(ILogger logger, AgentInstructionsService instructionsService, IOptions<AzureAIConfig>? azureConfig = null) : BaseAgent(logger)
 {
-    private readonly AgentInstructionsService _instructionsService;
-    private readonly AzureAIConfig? _azureConfig;
+    private readonly AgentInstructionsService _instructionsService = instructionsService;
+    private readonly AzureAIConfig? _azureConfig = azureConfig?.Value;
 
     public override string Name => "generic_agent";
     public override string Description => _instructionsService.GetDescription("generic_agent");
     
     public override string Instructions => _instructionsService.GetInstructions("generic_agent");
-
-    public GenericAgent(ILogger logger, AgentInstructionsService instructionsService, IOptions<AzureAIConfig>? azureConfig = null) 
-        : base(logger) 
-    {
-        _instructionsService = instructionsService;
-        _azureConfig = azureConfig?.Value;
-    }
 
     public override async Task InitializeAsync()
     {

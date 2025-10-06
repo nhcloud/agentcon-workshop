@@ -1,0 +1,165 @@
+﻿@baseUrl=http://localhost:8000
+@contentType = application/json
+
+### ===NOTE===
+# .NET Agent Framework API Test Collection
+# 
+# This HTTP file tests the .NET Agent Framework API implementation
+# 
+# Prerequisites:
+# 1. Install VS Code REST Client extension
+# 2. Start the .NET API: dotnet run
+# 3. Ensure Azure OpenAI credentials are configured in .env
+#
+# Usage: Click "Send Request" above each section to test individual endpoints
+
+###
+
+### 1. Health Check
+GET {{baseUrl}}/health
+Accept: {{contentType}}
+
+### 2. Get Available Agents
+# Returns list of all available agents with their capabilities
+GET {{baseUrl}}/agents
+Accept: {{contentType}}
+
+### 3. Single Agent Chat
+# Test basic chat functionality with the generic agent
+POST {{baseUrl}}/chat
+Content-Type: {{contentType}}
+
+{
+  "message": "What are the best practices for building scalable .NET applications?",
+  "agents": ["generic_agent"],
+  "session_id": "single-agent-test"
+}
+
+### 4. Auto-Route Agent Chat
+# Test specialized people lookup agent
+POST {{baseUrl}}/chat
+Content-Type: {{contentType}}
+
+{
+  "message": "Can you help me find experts in machine learning?",
+  "session_id": "auto-route-test"
+}
+
+### 5. Multi-Agent Group Chat
+# The /chat endpoint automatically routes to group chat when multiple agents are specified
+POST {{baseUrl}}/group-chat
+Content-Type: {{contentType}}
+
+{
+  "message": "How should we approach building an AI-powered application? Consider both technical and business perspectives.",
+  "agents": ["generic_agent", "foundry_people_lookup", "foundry_knowledge_finder"],
+  "session_id": "group-chat-test",
+  "max_turns": 2
+}
+
+### 6. Get Group Chat Templates
+GET {{baseUrl}}/chat/group-chat/templates
+Accept: {{contentType}}
+
+### 7. Get Specific Template Details
+GET {{baseUrl}}/chat/group-chat/templates/comprehensive_inquiry
+Accept: {{contentType}}
+
+### 8. Create Group Chat from Template
+POST {{baseUrl}}/chat/group-chat/from-template
+Content-Type: {{contentType}}
+
+{
+  "template_name": "comprehensive_inquiry"
+}
+
+### 9. Get Active Group Chats
+GET {{baseUrl}}/group-chats
+Accept: {{contentType}}
+
+### 10. Test Session History
+# Test that conversation history is maintained across requests
+POST {{baseUrl}}/chat
+Content-Type: {{contentType}}
+
+{
+  "message": "Remember this: my favorite color is blue",
+  "agents": ["generic_agent"],
+  "session_id": "session-history-test"
+}
+
+### 11. Test Session History Follow-up
+# This should reference the previous message in the same session
+POST {{baseUrl}}/chat
+Content-Type: {{contentType}}
+
+{
+  "message": "What did I just tell you about my favorite color?",
+  "agents": ["generic_agent"],
+  "session_id": "session-history-test"
+}
+
+### 12. Get Session Messages
+GET {{baseUrl}}/messages/session-history-test
+Accept: {{contentType}}
+
+### 13. Reset Session
+# Reset a specific session to clear conversation history
+POST {{baseUrl}}/reset
+Content-Type: {{contentType}}
+
+{
+  "session_id": "session-history-test"
+}
+
+### 14. Delete Session
+DELETE {{baseUrl}}/messages/session-history-test
+
+### 15. Error Handling - Missing Message
+# Test error handling with invalid request
+POST {{baseUrl}}/chat
+Content-Type: {{contentType}}
+
+{
+  "agents": ["generic_agent"],
+  "session_id": "error-test"
+}
+
+### 16. Error Handling - Invalid Agent
+# Test error handling with non-existent agent
+POST {{baseUrl}}/chat
+Content-Type: {{contentType}}
+
+{
+  "message": "Test message",
+  "agents": ["non_existent_agent"],
+  "session_id": "error-test-2"
+}
+
+### 17. Error Handling - Invalid Template
+GET {{baseUrl}}/chat/group-chat/templates/non_existent_template
+Accept: {{contentType}}
+
+### 18. Termination Test - Agent Scope
+# Test that only relevant agents respond based on the question
+POST {{baseUrl}}/group-chat
+Content-Type: {{contentType}}
+
+{
+  "message": "Who are the best software engineers in our company?",
+  "agents": ["people_lookup", "knowledge_finder"],
+  "session_id": "termination-test",
+  "max_turns": 1
+}
+
+###
+# End of API Test Collection
+# 
+# Tips:
+# - Each test covers a unique functionality without redundancy
+# - Use different session_ids to test session isolation
+# - Check response metadata for performance metrics
+# - Template endpoints allow testing of YAML configuration loading
+# - Error handling tests ensure robust API behavior
+# - Session management tests verify conversation persistence
+# - Use the Swagger UI at http://localhost:8000 for interactive documentation

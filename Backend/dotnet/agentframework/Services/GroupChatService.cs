@@ -6,24 +6,16 @@ namespace DotNetAgentFramework.Services;
 /// <summary>
 /// Group chat service implementation using Microsoft Agent Framework
 /// </summary>
-public class GroupChatService : IGroupChatService
+public class GroupChatService(
+    IAgentService agentService,
+    ISessionManager sessionManager,
+    ILogger<GroupChatService> logger,
+    IOptions<AzureAIConfig> azureConfig) : IGroupChatService
 {
-    private readonly IAgentService _agentService;
-    private readonly ISessionManager _sessionManager;
-    private readonly ILogger<GroupChatService> _logger;
-    private readonly AzureAIConfig _azureConfig;
-
-    public GroupChatService(
-        IAgentService agentService,
-        ISessionManager sessionManager,
-        ILogger<GroupChatService> logger,
-        IOptions<AzureAIConfig> azureConfig)
-    {
-        _agentService = agentService;
-        _sessionManager = sessionManager;
-        _logger = logger;
-        _azureConfig = azureConfig.Value;
-    }
+    private readonly IAgentService _agentService = agentService;
+    private readonly ISessionManager _sessionManager = sessionManager;
+    private readonly ILogger<GroupChatService> _logger = logger;
+    private readonly AzureAIConfig _azureConfig = azureConfig.Value;
 
     /// <summary>
     /// Start a group chat with multiple agents using Microsoft Agent Framework

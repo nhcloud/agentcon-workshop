@@ -16,19 +16,14 @@ public interface IAgent
     Task InitializeAsync();
 }
 
-public abstract class BaseAgent : IAgent
+public abstract class BaseAgent(ILogger logger) : IAgent
 {
-    protected readonly ILogger _logger;
+    protected readonly ILogger _logger = logger;
     protected ChatClient? _chatClient;
 
     public abstract string Name { get; }
     public abstract string Description { get; }
     public abstract string Instructions { get; }
-
-    protected BaseAgent(ILogger logger)
-    {
-        _logger = logger;
-    }
 
     public virtual async Task InitializeAsync()
     {
@@ -151,33 +146,22 @@ public abstract class BaseAgent : IAgent
 /// <summary>
 /// Azure OpenAI Agent - Standard agent that uses Azure OpenAI
 /// </summary>
-public class AzureOpenAIAgent : BaseAgent
+public class AzureOpenAIAgent(
+    string name,
+    string description,
+    string instructions,
+    string modelDeployment,
+    string endpoint,
+    Azure.Core.TokenCredential? credential,
+    ILogger<AzureOpenAIAgent> logger) : BaseAgent(logger)
 {
-    private readonly string _modelDeployment;
-    private readonly string _endpoint;
-    private readonly Azure.Core.TokenCredential? _credential;
+    private readonly string _modelDeployment = modelDeployment;
+    private readonly string _endpoint = endpoint;
+    private readonly Azure.Core.TokenCredential? _credential = credential ?? new DefaultAzureCredential();
 
-    public override string Name { get; }
-    public override string Description { get; }
-    public override string Instructions { get; }
-
-    public AzureOpenAIAgent(
-        string name,
-        string description,
-        string instructions,
-        string modelDeployment,
-        string endpoint,
-        Azure.Core.TokenCredential? credential,
-        ILogger<AzureOpenAIAgent> logger)
-        : base(logger)
-    {
-        Name = name;
-        Description = description;
-        Instructions = instructions;
-        _modelDeployment = modelDeployment;
-        _endpoint = endpoint;
-        _credential = credential ?? new DefaultAzureCredential();
-    }
+    public override string Name { get; } = name;
+    public override string Description { get; } = description;
+    public override string Instructions { get; } = instructions;
 
     public override async Task InitializeAsync()
     {
@@ -204,42 +188,29 @@ public class AzureOpenAIAgent : BaseAgent
 /// <summary>
 /// Azure AI Foundry Agent using PersistentAgentsClient following the official sample pattern
 /// </summary>
-public class AzureAIFoundryAgent : BaseAgent
+public class AzureAIFoundryAgent(
+    string name,
+    string agentId,
+    string projectEndpoint,
+    string description,
+    string instructions,
+    string modelDeployment,
+    Azure.Core.TokenCredential? credential,
+    ILogger<AzureAIFoundryAgent> logger,
+    string? managedIdentityClientId = null) : BaseAgent(logger)
 {
-    private readonly string _agentId;
-    private readonly string _projectEndpoint;
-    private readonly string? _managedIdentityClientId;
-    private readonly string _modelDeployment;
-    private readonly Azure.Core.TokenCredential? _credential;
+    private readonly string _agentId = agentId;
+    private readonly string _projectEndpoint = projectEndpoint;
+    private readonly string? _managedIdentityClientId = managedIdentityClientId;
+    private readonly string _modelDeployment = modelDeployment;
+    private readonly Azure.Core.TokenCredential? _credential = credential ?? new DefaultAzureCredential();
     private PersistentAgentsClient? _azureAgentClient;
     private Microsoft.Agents.AI.ChatClientAgent? _foundryAgent;
     private readonly Dictionary<string, Microsoft.Agents.AI.AgentThread> _threadCache = new();
 
-    public override string Name { get; }
-    public override string Description { get; }
-    public override string Instructions { get; }
-
-    public AzureAIFoundryAgent(
-        string name, 
-        string agentId, 
-        string projectEndpoint,
-        string description,
-        string instructions,
-        string modelDeployment,
-        Azure.Core.TokenCredential? credential,
-        ILogger<AzureAIFoundryAgent> logger,
-        string? managedIdentityClientId = null) 
-        : base(logger)
-    {
-        Name = name;
-        _agentId = agentId;
-        _projectEndpoint = projectEndpoint;
-        _managedIdentityClientId = managedIdentityClientId;
-        Description = description;
-        Instructions = instructions;
-        _modelDeployment = modelDeployment;
-        _credential = credential ?? new DefaultAzureCredential();
-    }
+    public override string Name { get; } = name;
+    public override string Description { get; } = description;
+    public override string Instructions { get; } = instructions;
 
     public override async Task InitializeAsync()
     {
